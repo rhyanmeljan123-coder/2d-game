@@ -16,8 +16,11 @@ public class SimpleAnimator : MonoBehaviour
 
     void Awake() => sr = GetComponent<SpriteRenderer>();
 
+    void EnsureRenderer() { if (sr == null) sr = GetComponent<SpriteRenderer>(); }
+
     public void Play(Sprite[] newFrames, float framesPerSecond, bool looping = true, bool restart = false)
     {
+        EnsureRenderer();
         if (!restart && newFrames == frames) { fps = framesPerSecond; return; }
         frames = newFrames;
         fps = framesPerSecond;

@@ -5,7 +5,7 @@ public class Bed : Interactable
 {
     public const float SleepSeconds = 15f;
 
-    public override string Prompt => GameHud.IsFading ? null : "Sleep (crops grow) [E]";
+    public override string Prompt => GameHud.IsFading ? null : "Sleep: heal & grow crops [E]";
 
     public override void Interact()
     {
@@ -13,7 +13,9 @@ public class Bed : Interactable
         GameHud.Fade(() =>
         {
             CropPlot.GrowAll(SleepSeconds);
-            GameHud.Toast("You slept well. Your crops grew a little!");
+            var player = FindFirstObjectByType<PlayerController>();
+            if (player != null) player.Health.Heal(player.Health.max);
+            GameHud.Toast("You slept well: full health, and your crops grew a little!");
         });
     }
 }

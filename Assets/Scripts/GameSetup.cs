@@ -81,6 +81,8 @@ public static class GameSetup
             {
                 var io = map.InteriorOrigin;
                 areas.Add(new CameraFollow.Area(new Rect(io.x, io.y, map.interiorWidth, map.interiorHeight), 5.5f)); // farmhouse
+                var d = map.DungeonOrigin;
+                areas.Add(new CameraFollow.Area(new Rect(d.x, d.y, DungeonWorld.Width, DungeonWorld.Height), 6.5f)); // dungeon
             }
             follow.areas = areas.ToArray();
         }
@@ -96,6 +98,7 @@ public static class GameSetup
         var go = new GameObject("Player");
         go.transform.position = position;
         go.tag = "Player";
+        go.AddComponent<Health>();
         var rb = go.AddComponent<Rigidbody2D>();
         rb.bodyType = RigidbodyType2D.Dynamic;
         var box = go.AddComponent<BoxCollider2D>(); // small box at the feet

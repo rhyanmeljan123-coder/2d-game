@@ -20,8 +20,10 @@ public class PlayerInteractor : MonoBehaviour
     void Update()
     {
         var kb = Keyboard.current;
+        if (GameHud.UiOpen || GameHud.IsFading) { CurrentPrompt = null; return; }
         if (kb != null)
         {
+            if (kb.fKey.wasPressedThisFrame) Inventory.EatBest(player.Health);
             if (kb.digit1Key.wasPressedThisFrame) Inventory.SelectedCrop = 0;
             if (kb.digit2Key.wasPressedThisFrame) Inventory.SelectedCrop = 1;
             if (kb.digit3Key.wasPressedThisFrame) Inventory.SelectedCrop = 2;

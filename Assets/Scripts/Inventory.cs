@@ -5,7 +5,9 @@ public enum Item
 {
     Pumpkin, Potato, Carrot, Tomato, Peas,                                  // harvested crops (0-4)
     PumpkinSeeds, PotatoSeeds, CarrotSeeds, TomatoSeeds, PeaSeeds,           // seed packets (5-9)
-    Milk, Herb, Flower                                                       // extras
+    Milk, Herb, Flower,                                                      // found items
+    SlimeGel, Bone,                                                          // dungeon drops
+    Salad, VegStew, PumpkinSoup, BoneBroth, HealingPotion, HeartyPie         // crafted food & potions
 }
 
 /// <summary>The player's items. Static, so anything can add to it. Reset every time Play starts.</summary>
@@ -13,11 +15,24 @@ public static class Inventory
 {
     public const int CropCount = 5;
     static readonly int[] counts = new int[Enum.GetValues(typeof(Item)).Length];
+
     static readonly string[] names =
     {
         "Pumpkin", "Potato", "Carrot", "Tomato", "Peas",
         "Pumpkin seeds", "Potato seeds", "Carrot seeds", "Tomato seeds", "Pea seeds",
         "Milk", "Herb", "Flower",
+        "Slime gel", "Bone",
+        "Salad", "Vegetable stew", "Pumpkin soup", "Bone broth", "Healing potion", "Hearty pie",
+    };
+
+    // How much health each item restores when eaten (0 = can't be eaten)
+    static readonly int[] heal =
+    {
+        12, 6, 8, 10, 5,          // raw crops
+        0, 0, 0, 0, 0,            // seeds
+        10, 15, 0,                // milk, herb, flower
+        0, 0,                     // slime gel, bone
+        30, 40, 50, 45, 70, 100,  // crafted
     };
 
     /// <summary>Which crop (0-4) is picked for planting. Change with keys 1-5.</summary>
@@ -37,6 +52,7 @@ public static class Inventory
     public static Item CropItem(int crop) => (Item)crop;
     public static string Name(Item item) => names[(int)item];
     public static string CropName(int crop) => names[crop];
+    public static int HealAmount(Item item) => heal[(int)item];
 
     public static int Get(Item item) => counts[(int)item];
 
@@ -54,14 +70,52 @@ public static class Inventory
         return true;
     }
 
-    /// <summary>Icon from items.png (5 columns x 3 rows of 16px).</summary>
+    /// <summary>
+    /// Eats the most suitable food: the smallest one that heals all missing health,
+    /// or the strongest one if nothing is big enough.
+    /// </summary>
+    public static bool EatBest(Health hp)
+    {
+        if (hp == null || hp.Dead) return false;
+        int missing = hp.max - hp.current;
+        if (missing <= 0) { GameHud.Toast("You're already at full health."); return false; }
+
+        bool found = false;
+        Item best = default;
+        int bestHeal = 0;
+        for (int i = 0; i < counts.Length; i++)
+        {
+            int h = heal[i];
+            if (h <= 0 || counts[i] <= 0) continue;
+            bool covers = h >= missing, bestCovers = bestHeal >= missing;
+            if (!found || (covers && !bestCovers) || (covers && bestCovers && h < bestHeal) || (!covers && !bestCovers && h > bestHeal))
+            {
+                found = true; best = (Item)i; bestHeal = h;
+            }
+        }
+        if (!found) { GameHud.Toast("Nothing to eat! Harvest crops or craft food."); return false; }
+
+        TryRemove(best);
+        hp.Heal(bestHeal);
+        GameHud.Toast($"Ate {Name(best).ToLower()}  +{bestHeal} HP");
+        return true;
+    }
+
+    /// <summary>Icon from items.png (5x3 of 16px) or crafted.png (4x2 of 16px).</summary>
     public static Sprite Icon(Item item)
     {
-        int i = (int)item, row, col;
-        if (i < 5) { row = 0; col = i; }
-        else if (i < 10) { row = 1; col = i - 5; }
-        else { row = 2; col = i - 10; }
-        var sheet = SpriteSheet.Slice("Items/items", 16, new Vector2(8, 8));
-        return sheet.Length == 0 ? null : sheet[row, col];
+        int i = (int)item;
+        if (i < (int)Item.SlimeGel)
+        {
+            int row, col;
+            if (i < 5) { row = 0; col = i; }
+            else if (i < 10) { row = 1; col = i - 5; }
+            else { row = 2; col = i - 10; }
+            var sheet = SpriteSheet.Slice("Items/items", 16, new Vector2(8, 8));
+            return sheet.Length == 0 ? null : sheet[row, col];
+        }
+        int j = i - (int)Item.SlimeGel;
+        var crafted = SpriteSheet.Slice("Items/crafted", 16, new Vector2(8, 8));
+        return crafted.Length == 0 ? null : crafted[j / 4, j % 4];
     }
 }

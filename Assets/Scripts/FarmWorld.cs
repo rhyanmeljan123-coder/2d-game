@@ -42,7 +42,7 @@ public static class FarmWorld
 
     static Sprite soil;
 
-    public static void Build(Transform parent, int mapOffset, Vector2Int interior, int interiorWidth, int interiorHeight)
+    public static void Build(Transform parent, int mapOffset, Vector2Int interior, int interiorWidth, int interiorHeight, Vector2Int dungeon)
     {
         var root = new GameObject("FarmWorld").transform;
         root.SetParent(parent, false);
@@ -56,6 +56,10 @@ public static class FarmWorld
         Add(root, "flowers", Flowers, 11f, 17f);
         Add(root, "clover", Clover, 16f, 15f);
         AddChest(root, 31f, 12.8f);
+
+        // Cave entrance to the dungeon (top of the first map)
+        var dungeonEntry = new Vector2(dungeon.x + DungeonWorld.EntrySpawn.x, dungeon.y + DungeonWorld.EntrySpawn.y);
+        DungeonWorld.AddEntrance(root, new Vector2(24f, 19.8f), dungeonEntry);
 
         AddPickup(root, Item.Carrot, 11.5f, 13f);
         AddPickup(root, Item.Tomato, 30f, 7f);
@@ -130,7 +134,13 @@ public static class FarmWorld
 
         // ================= FARMHOUSE INTERIOR =================
         BuildInterior(root, interior, interiorWidth, interiorHeight);
+
+        // ================= DUNGEON =================
+        DungeonWorld.Build(root, dungeon, new Vector2(24f, 18.2f));
     }
+
+    /// <summary>Spawns an item on the ground (used for monster drops).</summary>
+    public static void DropPickup(Item item, Vector2 position) => AddPickup(null, item, position.x, position.y);
 
     // ---------------------------------------------------------------- interior
 
@@ -154,7 +164,8 @@ public static class FarmWorld
         Add(root, "lamp", Lamp, ix + 3.6f, iy + 6.8f, new Vector2(0.4f, 0.3f), new Vector2(0f, 0.2f));
 
         // Dining table with two stools
-        Add(root, "table", TableWide, ix + 7.2f, iy + 3.8f, new Vector2(1.4f, 0.5f), new Vector2(0f, 0.3f));
+        var craftTable = Add(root, "Crafting table", TableWide, ix + 7.2f, iy + 3.8f, new Vector2(1.4f, 0.5f), new Vector2(0f, 0.3f));
+        craftTable.AddComponent<CraftingTable>();
         Add(root, "stool", Stool, ix + 5.8f, iy + 3.4f, new Vector2(0.5f, 0.3f), new Vector2(0f, 0.2f));
         Add(root, "stool", Stool, ix + 8.6f, iy + 3.4f, new Vector2(0.5f, 0.3f), new Vector2(0f, 0.2f));
 
@@ -194,7 +205,7 @@ public static class FarmWorld
         return go;
     }
 
-    static void AddTeleporter(Transform parent, Vector2 position, Vector2 size, Vector2 destination)
+    public static void AddTeleporter(Transform parent, Vector2 position, Vector2 size, Vector2 destination)
     {
         var go = new GameObject("Door (teleporter)");
         go.transform.SetParent(parent, false);
@@ -205,13 +216,13 @@ public static class FarmWorld
         go.AddComponent<Teleporter>().Init(destination);
     }
 
-    static void AddChest(Transform parent, float x, float y)
+    public static void AddChest(Transform parent, float x, float y)
     {
         var go = Add(parent, "Chest", ChestClosed, x, y, new Vector2(0.8f, 0.5f), new Vector2(0f, 0.25f));
         go.AddComponent<Chest>().Init(go.GetComponent<SpriteRenderer>(), ChestOpen);
     }
 
-    static void AddPickup(Transform parent, Item item, float x, float y)
+    public static void AddPickup(Transform parent, Item item, float x, float y)
     {
         var go = new GameObject("Pickup_" + item);
         go.transform.SetParent(parent, false);

@@ -27,6 +27,9 @@ public class SimpleMapBuilder : MonoBehaviour
     /// <summary>Bottom-left tile of the interior room.</summary>
     public Vector2Int InteriorOrigin => new Vector2Int(TotalWidth + 10, 0);
 
+    /// <summary>Bottom-left tile of the dungeon (above the farmhouse interior).</summary>
+    public Vector2Int DungeonOrigin => new Vector2Int(TotalWidth + 10, 20);
+
     const string ResPath = "Map/";
 
     readonly Dictionary<string, Tile> tileCache = new Dictionary<string, Tile>();
@@ -83,12 +86,12 @@ public class SimpleMapBuilder : MonoBehaviour
         interiorWalls = CreateLayer(gridGo.transform, "InteriorWalls", -15, true);
 
         BuildGround();
-        BuildPath(3, 9, 34, 3);      // x, y, w, h  (sand road across the map)
         BuildPond(27, 14, 8, 6);     // pond in the upper right
         BuildDecorations();
         BuildSpringMap(width);                          // second map, right beside the first
         BuildInterior();
-        FarmWorld.Build(generatedRoot.transform, width, InteriorOrigin, interiorWidth, interiorHeight); // objects, items, furniture
+        BuildDungeon();
+        FarmWorld.Build(generatedRoot.transform, width, InteriorOrigin, interiorWidth, interiorHeight, DungeonOrigin); // objects, items, furniture, dungeon
         BuildBoundaries();
         if (!Application.isPlaying) GameSetup.CreatePreviews(generatedRoot.transform); // visible in Scene view
 
@@ -157,6 +160,20 @@ public class SimpleMapBuilder : MonoBehaviour
             for (int y = 0; y < height; y++)
                 groundMap.SetTile(new Vector3Int(ox + x, y, 0), grass);
 
+        // Blend the two kinds of grass together so the maps merge into one world (dithered strip across the seam)
+        const int Blend = 7;
+        var oldGrass = GetTile("grass");
+        var seamRng = new System.Random(21);
+        for (int x = ox - Blend; x < ox + Blend; x++)
+        {
+            float chanceSpring = (x - (ox - Blend) + 0.5f) / (2f * Blend); // 0 on the left ... 1 on the right
+            for (int y = 0; y < height; y++)
+            {
+                bool spring = seamRng.NextDouble() < chanceSpring;
+                groundMap.SetTile(new Vector3Int(x, y, 0), spring ? grass : oldGrass);
+            }
+        }
+
         // Scatter small flowers / grass tufts on the open grass
         var rng = new System.Random(7);
         for (int i = 0; i < 90; i++)
@@ -166,8 +183,14 @@ public class SimpleMapBuilder : MonoBehaviour
             if (InSpringBuildings(x, y)) continue;
             detailMap.SetTile(new Vector3Int(ox + x, y, 0), GetTile("Map2/sp_detail_" + variant));
         }
+        for (int i = 0; i < 30; i++) // a few across the seam on the first map's side
+        {
+            int x = rng.Next(-Blend, 0), y = rng.Next(0, height);
+            if (y >= 8 && y <= 12) continue;
+            detailMap.SetTile(new Vector3Int(ox + x, y, 0), GetTile("Map2/sp_detail_" + rng.Next(0, 4)));
+        }
 
-        Fill9(pathMap, "Map2/sp_path", ox + 1, 9, 34, 3);   // road (same row as the first map's road)
+        Fill9(pathMap, "Map2/sp_path", 3, 9, ox + 34 - 3, 3); // ONE road running across both maps
         Fill9(pathMap, "Map2/sp_path", ox + 12, 13, 14, 8); // farm yard
         Fill9(waterMap, "Map2/sp_pond", ox + 29, 14, 7, 6); // pond with a cliff edge
     }
@@ -206,6 +229,32 @@ public class SimpleMapBuilder : MonoBehaviour
             var t = GetTile(y % 2 == 0 ? "Interior/in_wall_e" : "Interior/in_wall_a");
             interiorWalls.SetTile(new Vector3Int(o.x, o.y + y, 0), t);
             interiorWalls.SetTile(new Vector3Int(o.x + w - 1, o.y + y, 0), t);
+        }
+    }
+
+    void BuildDungeon()
+    {
+        var o = DungeonOrigin;
+        var floorA = GetTile("Interior/dun_floor_a");
+        var floorB = GetTile("Interior/dun_floor_b");
+        for (int x = 0; x < DungeonWorld.Width; x++)
+        {
+            for (int y = 0; y < DungeonWorld.Height; y++)
+            {
+                var cell = new Vector3Int(o.x + x, o.y + y, 0);
+                if (DungeonWorld.IsFloor(x, y))
+                {
+                    interiorFloor.SetTile(cell, (x * 3 + y) % 5 == 0 ? floorB : floorA);
+                }
+                else if (DungeonWorld.IsVisibleWall(x, y))
+                {
+                    // rock with a floor tile below it gets the shadowed brick
+                    bool shadow = DungeonWorld.IsFloor(x, y - 1);
+                    string name = shadow ? (x % 2 == 0 ? "dun_wall_c" : "dun_wall_d")
+                                         : (x % 2 == 0 ? "dun_wall_a" : (y % 2 == 0 ? "dun_wall_b" : "dun_wall_e"));
+                    interiorWalls.SetTile(cell, GetTile("Interior/" + name));
+                }
+            }
         }
     }
 
@@ -278,7 +327,7 @@ public class SimpleMapBuilder : MonoBehaviour
         float[,] trees =
         {
             { 5.5f, 18.5f }, { 9.5f, 20.0f }, { 13.5f, 17.5f }, { 2.5f, 14.5f },
-            { 8.5f, 14.0f }, { 22.5f, 20.0f }, { 36.5f, 21.0f }, { 37.5f, 12.8f },
+            { 8.5f, 14.0f }, { 36.5f, 21.0f }, { 37.5f, 12.8f },
             { 6.5f, 5.0f }, { 14.5f, 3.0f }, { 24.5f, 5.5f }, { 33.5f, 4.0f },
             { 19.5f, 1.8f },
         };

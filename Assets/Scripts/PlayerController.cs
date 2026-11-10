@@ -4,12 +4,15 @@ using UnityEngine.InputSystem;
 /// <summary>
 /// Top-down player: WASD / arrow keys to move, Left Shift to run, Space / J / left mouse to swing the sword.
 /// Uses the Cute Fantasy Player.png sheet (6 columns x 10 rows of 32px frames).
+/// Has health: monsters hurt you, food and sleeping heal you, and if you pass out you wake up at the farm.
 /// </summary>
-[RequireComponent(typeof(Rigidbody2D), typeof(SpriteRenderer), typeof(SimpleAnimator))]
+[RequireComponent(typeof(Rigidbody2D), typeof(SpriteRenderer), typeof(SimpleAnimator), typeof(Health))]
 public class PlayerController : MonoBehaviour
 {
     public float walkSpeed = 3.5f;
     public float runSpeed = 6f;
+    public int swordDamage = 2;
+    public int maxHealth = 100;
 
     // Sheet rows (row 0 = top of the image)
     const int RowIdle = 0, RowWalk = 3, RowAttack = 6; // each has Down, Side, Up in consecutive rows
@@ -23,15 +26,24 @@ public class PlayerController : MonoBehaviour
     Facing facing = Facing.Down;
     bool faceLeft;
     Vector2 input;
-    float attackTimer;
+    Vector2 knockback;
+    float attackTimer, attackLength, flashUntil;
+    bool swingHit;
     const float AttackFps = 12f;
+
+    public Health Health { get; private set; }
 
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         sr = GetComponent<SpriteRenderer>();
         anim = GetComponent<SimpleAnimator>();
+        Health = GetComponent<Health>();
         SpriteMaterial.Apply(sr);
+
+        Health.Configure(maxHealth, 0.8f);
+        Health.Damaged += OnDamaged;
+        Health.Died += OnDied;
 
         rb.gravityScale = 0f;
         rb.freezeRotation = true;
@@ -47,6 +59,13 @@ public class PlayerController : MonoBehaviour
             attack[i] = SpriteSheet.Row(sheet, RowAttack + i, 0, 4);
         }
         anim.Play(idle[0], 6f);
+    }
+
+    void OnDestroy()
+    {
+        if (Health == null) return;
+        Health.Damaged -= OnDamaged;
+        Health.Died -= OnDied;
     }
 
     void Update()
@@ -68,18 +87,22 @@ public class PlayerController : MonoBehaviour
         }
         if (mouse != null && mouse.leftButton.wasPressedThisFrame) attackPressed = true;
         input = Vector2.ClampMagnitude(input, 1f);
-        if (GameHud.IsFading) { input = Vector2.zero; attackPressed = false; }
+        if (GameHud.IsFading || GameHud.UiOpen || Health.Dead) { input = Vector2.zero; attackPressed = false; }
 
         // Swing the sword
         if (attackTimer <= 0f && attackPressed)
         {
-            attackTimer = attack[(int)facing].Length / AttackFps;
+            attackLength = attack[(int)facing].Length / AttackFps;
+            attackTimer = attackLength;
+            swingHit = false;
             anim.Play(attack[(int)facing], AttackFps, false, true);
         }
 
         if (attackTimer > 0f)
         {
             attackTimer -= Time.deltaTime;
+            // The blade connects partway through the swing
+            if (!swingHit && attackLength - attackTimer >= 0.12f) { swingHit = true; SwordHit(); }
             if (attackTimer <= 0f) attackTimer = 0f;
         }
         else
@@ -90,6 +113,7 @@ public class PlayerController : MonoBehaviour
         }
 
         sr.flipX = faceLeft;
+        sr.color = Time.time < flashUntil ? new Color(1f, 0.45f, 0.45f) : Color.white;
         sr.sortingOrder = 1000 - Mathf.RoundToInt(transform.position.y * 10f);
         speedThisFrame = run ? runSpeed : walkSpeed;
     }
@@ -102,8 +126,10 @@ public class PlayerController : MonoBehaviour
 
     void FixedUpdate()
     {
-        // No movement while swinging
-        rb.linearVelocity = attackTimer > 0f ? Vector2.zero : input * speedThisFrame;
+        // No walking while swinging, but knockback still pushes
+        Vector2 walkVelocity = attackTimer > 0f ? Vector2.zero : input * speedThisFrame;
+        rb.linearVelocity = walkVelocity + knockback;
+        knockback = Vector2.MoveTowards(knockback, Vector2.zero, 25f * Time.fixedDeltaTime);
     }
 
     void UpdateFacing()
@@ -118,5 +144,48 @@ public class PlayerController : MonoBehaviour
         {
             facing = input.y > 0f ? Facing.Up : Facing.Down;
         }
+    }
+
+    // ------------------------------------------------------------ combat & health
+
+    void SwordHit()
+    {
+        Vector2 centre = (Vector2)transform.position + FacingDir * 0.9f + Vector2.up * 0.4f;
+        foreach (var hit in Physics2D.OverlapCircleAll(centre, 0.95f))
+        {
+            var enemy = hit.GetComponentInParent<Enemy>();
+            if (enemy == null) continue;
+            var hp = enemy.GetComponent<Health>();
+            if (hp != null) hp.TakeDamage(swordDamage, transform.position);
+        }
+    }
+
+    void OnDamaged(int amount, Vector2 from)
+    {
+        Vector2 away = ((Vector2)transform.position - from).normalized;
+        knockback = away * 6f;
+        flashUntil = Time.time + 0.2f;
+    }
+
+    void OnDied()
+    {
+        GameHud.Toast("You passed out...");
+        StartCoroutine(RespawnWhenReady());
+    }
+
+    System.Collections.IEnumerator RespawnWhenReady()
+    {
+        while (GameHud.IsFading) yield return null; // wait if a door/sleep fade is still running
+        GameHud.Fade(() =>
+        {
+            Health.Revive(Health.max / 2);
+            knockback = Vector2.zero;
+            attackTimer = 0f;
+            Vector2 home = GameSetup.PlayerStart;
+            rb.linearVelocity = Vector2.zero;
+            rb.position = home;
+            transform.position = home;
+            GameHud.Toast("You woke up back at the farm.");
+        });
     }
 }
