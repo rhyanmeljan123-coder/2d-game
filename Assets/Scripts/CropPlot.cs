@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -13,6 +14,17 @@ public class CropPlot : Interactable
     float timer;
     int stage;
     SpriteRenderer cropRenderer;
+
+    static readonly List<CropPlot> all = new List<CropPlot>();
+    void OnEnable() => all.Add(this);
+    void OnDisable() => all.Remove(this);
+
+    /// <summary>Fast-forwards every growing crop (used by the bed).</summary>
+    public static void GrowAll(float seconds)
+    {
+        foreach (var plot in all)
+            if (plot.state == State.Growing) plot.timer += seconds;
+    }
 
     // plants.png rows for each crop (Pumpkin, Potato, Carrot, Tomato); peas use the tall 2-row sprites
     static readonly int[] PlantRow = { 0, 2, 1, 3, -1 };

@@ -68,6 +68,7 @@ public class PlayerController : MonoBehaviour
         }
         if (mouse != null && mouse.leftButton.wasPressedThisFrame) attackPressed = true;
         input = Vector2.ClampMagnitude(input, 1f);
+        if (GameHud.IsFading) { input = Vector2.zero; attackPressed = false; }
 
         // Swing the sword
         if (attackTimer <= 0f && attackPressed)

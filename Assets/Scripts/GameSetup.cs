@@ -73,7 +73,16 @@ public static class GameSetup
             var follow = cam.GetComponent<CameraFollow>();
             if (follow == null) follow = cam.gameObject.AddComponent<CameraFollow>();
             follow.target = player.transform;
-            follow.mapSize = mapSize;
+            var areas = new System.Collections.Generic.List<CameraFollow.Area>
+            {
+                new CameraFollow.Area(new Rect(0f, 0f, mapSize.x, mapSize.y), 7f), // outdoors (both maps)
+            };
+            if (map != null)
+            {
+                var io = map.InteriorOrigin;
+                areas.Add(new CameraFollow.Area(new Rect(io.x, io.y, map.interiorWidth, map.interiorHeight), 5.5f)); // farmhouse
+            }
+            follow.areas = areas.ToArray();
         }
 
         if (Object.FindFirstObjectByType<AnimalWander>() != null) return; // animals already in the scene

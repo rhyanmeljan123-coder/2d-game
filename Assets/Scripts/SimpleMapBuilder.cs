@@ -21,10 +21,16 @@ public class SimpleMapBuilder : MonoBehaviour
     /// <summary>Total world width: both maps side by side.</summary>
     public int TotalWidth => width + springMapWidth;
 
+    [Header("Farmhouse interior (a separate room to the right of the maps)")]
+    public int interiorWidth = 14;
+    public int interiorHeight = 10;
+    /// <summary>Bottom-left tile of the interior room.</summary>
+    public Vector2Int InteriorOrigin => new Vector2Int(TotalWidth + 10, 0);
+
     const string ResPath = "Map/";
 
     readonly Dictionary<string, Tile> tileCache = new Dictionary<string, Tile>();
-    Tilemap groundMap, detailMap, pathMap, waterMap;
+    Tilemap groundMap, detailMap, pathMap, waterMap, interiorFloor, interiorWalls;
     GameObject generatedRoot;
     const string RootName = "Generated";
 
@@ -73,13 +79,16 @@ public class SimpleMapBuilder : MonoBehaviour
         detailMap = CreateLayer(gridGo.transform, "Details", -25, false);
         pathMap = CreateLayer(gridGo.transform, "Path", -20, false);
         waterMap = CreateLayer(gridGo.transform, "Water", -10, true);
+        interiorFloor = CreateLayer(gridGo.transform, "InteriorFloor", -40, false);
+        interiorWalls = CreateLayer(gridGo.transform, "InteriorWalls", -15, true);
 
         BuildGround();
         BuildPath(3, 9, 34, 3);      // x, y, w, h  (sand road across the map)
         BuildPond(27, 14, 8, 6);     // pond in the upper right
         BuildDecorations();
         BuildSpringMap(width);                          // second map, right beside the first
-        FarmWorld.Build(generatedRoot.transform, width); // objects & items for both maps
+        BuildInterior();
+        FarmWorld.Build(generatedRoot.transform, width, InteriorOrigin, interiorWidth, interiorHeight); // objects, items, furniture
         BuildBoundaries();
         if (!Application.isPlaying) GameSetup.CreatePreviews(generatedRoot.transform); // visible in Scene view
 
@@ -169,6 +178,66 @@ public class SimpleMapBuilder : MonoBehaviour
         (x >= 11 && x <= 27 && y >= 12 && y <= 22) || // yard
         (x >= 28 && x <= 37 && y >= 13 && y <= 21) || // pond
         (x >= 3 && x <= 10 && y >= 11 && y <= 19);    // house
+
+    // ---------- farmhouse interior ----------
+
+    void BuildInterior()
+    {
+        var o = InteriorOrigin;
+        int w = interiorWidth, h = interiorHeight;
+
+        // Wooden floor (drawn in code), inside the walls
+        var floorA = MakeFloorTile(0);
+        var floorB = MakeFloorTile(1);
+        for (int x = 1; x < w - 1; x++)
+            for (int y = 1; y < h - 2; y++)
+                interiorFloor.SetTile(new Vector3Int(o.x + x, o.y + y, 0), (x + y) % 2 == 0 ? floorA : floorB);
+
+        // Brick walls: back wall is 2 tiles tall (top row + shadowed row), sides and front are 1 tile
+        for (int x = 0; x < w; x++)
+        {
+            bool alt = x % 2 == 0;
+            interiorWalls.SetTile(new Vector3Int(o.x + x, o.y + h - 1, 0), GetTile(alt ? "Interior/in_wall_a" : "Interior/in_wall_b"));
+            interiorWalls.SetTile(new Vector3Int(o.x + x, o.y + h - 2, 0), GetTile(alt ? "Interior/in_wall_c" : "Interior/in_wall_d"));
+            interiorWalls.SetTile(new Vector3Int(o.x + x, o.y, 0), GetTile(alt ? "Interior/in_wall_a" : "Interior/in_wall_b"));
+        }
+        for (int y = 1; y < h - 2; y++)
+        {
+            var t = GetTile(y % 2 == 0 ? "Interior/in_wall_e" : "Interior/in_wall_a");
+            interiorWalls.SetTile(new Vector3Int(o.x, o.y + y, 0), t);
+            interiorWalls.SetTile(new Vector3Int(o.x + w - 1, o.y + y, 0), t);
+        }
+    }
+
+    static Tile MakeFloorTile(int variant)
+    {
+        const int n = 16;
+        var tex = new Texture2D(n, n) { filterMode = FilterMode.Point, hideFlags = HideFlags.DontSave };
+        var baseCol = variant == 0 ? new Color(0.78f, 0.54f, 0.33f) : new Color(0.74f, 0.50f, 0.30f);
+        var line = new Color(0.52f, 0.33f, 0.21f);
+        var light = new Color(0.85f, 0.62f, 0.40f);
+        for (int y = 0; y < n; y++)
+        {
+            for (int x = 0; x < n; x++)
+            {
+                var c = baseCol;
+                if (y % 8 == 0) c = line;            // gap between planks
+                else if (y % 8 == 7) c = light;      // highlight on the plank edge
+                // plank end joints, staggered between rows of planks
+                int joint = (y / 8) % 2 == 0 ? 5 : 12;
+                if (x == joint && y % 8 != 0) c = line;
+                tex.SetPixel(x, y, c);
+            }
+        }
+        tex.Apply();
+        var tile = ScriptableObject.CreateInstance<Tile>();
+        tile.hideFlags = HideFlags.DontSave;
+        var sprite = Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), SpriteSheet.PixelsPerUnit, 0, SpriteMeshType.FullRect);
+        sprite.hideFlags = HideFlags.DontSave;
+        tile.sprite = sprite;
+        tile.colliderType = Tile.ColliderType.None;
+        return tile;
+    }
 
     // ---------- boundaries ----------
 

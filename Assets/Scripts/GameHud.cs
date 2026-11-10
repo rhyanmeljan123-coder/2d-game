@@ -1,3 +1,5 @@
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -13,8 +15,34 @@ public class GameHud : MonoBehaviour
         if (toasts.Count > 4) toasts.RemoveAt(0);
     }
 
+    static GameHud instance;
+    float fadeAlpha;
+    public static bool IsFading { get; private set; }
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void ResetToasts() => toasts.Clear();
+    static void ResetStatics() { toasts.Clear(); instance = null; IsFading = false; }
+
+    void Awake() => instance = this;
+
+    /// <summary>Fades to black, runs the action while the screen is black, then fades back in.</summary>
+    public static void Fade(Action atBlack)
+    {
+        if (IsFading) return;
+        if (instance == null) { atBlack?.Invoke(); return; }
+        instance.StartCoroutine(instance.FadeRoutine(atBlack));
+    }
+
+    IEnumerator FadeRoutine(Action atBlack)
+    {
+        IsFading = true;
+        for (float t = 0f; t < 0.25f; t += Time.unscaledDeltaTime) { fadeAlpha = t / 0.25f; yield return null; }
+        fadeAlpha = 1f;
+        atBlack?.Invoke();
+        yield return new WaitForSecondsRealtime(0.1f);
+        for (float t = 0f; t < 0.25f; t += Time.unscaledDeltaTime) { fadeAlpha = 1f - t / 0.25f; yield return null; }
+        fadeAlpha = 0f;
+        IsFading = false;
+    }
 
     GUIStyle count, prompt, hint, toast;
 
@@ -82,6 +110,15 @@ public class GameHud : MonoBehaviour
             ty -= 24f;
         }
         GUI.color = Color.white;
+
+        // --- fade to black (doors, sleeping) ---
+        if (fadeAlpha > 0f)
+        {
+            GUI.depth = -100;
+            GUI.color = new Color(0f, 0f, 0f, fadeAlpha);
+            GUI.DrawTexture(new Rect(0f, 0f, W, H), white);
+            GUI.color = Color.white;
+        }
     }
 
     void DrawSlot(Rect r, Item item, bool selected, string key)

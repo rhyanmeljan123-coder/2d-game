@@ -27,14 +27,27 @@ public static class FarmWorld
     static Sprite House => Obj(8, 96, 81, 92);
     static Sprite FenceH => Obj(0, 32, 48, 16);
     static Sprite Post => Obj(20, 32, 8, 16);
+    static Sprite DoorClosed => Obj(102, 113, 21, 27);
+
+    // ---- sprites cut from furniture free.png ----
+    const string Furniture = "Objects/furniture";
+    static Sprite Furn(int x, int y, int w, int h) => SpriteSheet.Cut(Furniture, x, y, w, h, new Vector2(w * 0.5f, 0f));
+    static Sprite Bed => Furn(0, 0, 16, 32);
+    static Sprite TableTall => Furn(16, 0, 16, 32);
+    static Sprite TableWide => Furn(32, 0, 24, 18);
+    static Sprite Window => Furn(64, 16, 16, 16);
+    static Sprite Stool => Furn(0, 32, 16, 16);
+    static Sprite Picture => Furn(16, 32, 16, 16);
+    static Sprite Lamp => Furn(32, 32, 16, 16);
 
     static Sprite soil;
 
-    public static void Build(Transform parent, int mapOffset)
+    public static void Build(Transform parent, int mapOffset, Vector2Int interior, int interiorWidth, int interiorHeight)
     {
         var root = new GameObject("FarmWorld").transform;
         root.SetParent(parent, false);
         int ox = mapOffset;
+        MapOffsetForHouse = mapOffset;
 
         // ================= MAP 1 (first map) =================
         Add(root, "rock", Rock, 20.5f, 14.2f, solid: new Vector2(0.9f, 0.55f), solidOffset: new Vector2(0f, 0.3f));
@@ -55,7 +68,13 @@ public static class FarmWorld
 
         // ================= MAP 2 (spring farm) =================
         // Red farmhouse
-        Add(root, "house", House, ox + 6.5f, 12.2f, solid: new Vector2(4.6f, 2.4f), solidOffset: new Vector2(0f, 1.2f));
+        var house = Add(root, "house", House, ox + 6.5f, 12.2f, solid: new Vector2(1.5f, 2.4f), solidOffset: new Vector2(-1.55f, 1.2f));
+        var rightWall = house.AddComponent<BoxCollider2D>(); // second wall box, leaving a doorway in the middle
+        rightWall.size = new Vector2(1.5f, 2.4f);
+        rightWall.offset = new Vector2(1.55f, 1.2f);
+        Add(root, "house door", DoorClosed, ox + 6.5f, 12.25f, order: OrderFor(12.2f) + 1);
+        Vector2 interiorSpawn = new Vector2(interior.x + interiorWidth * 0.5f, interior.y + 2.6f);
+        AddTeleporter(root, new Vector2(ox + 6.5f, 12.7f), new Vector2(1.2f, 0.7f), interiorSpawn);
 
         // Birch trees
         float[,] birches =
@@ -108,7 +127,48 @@ public static class FarmWorld
         AddPickup(root, Item.Flower, ox + 2f, 21f);
         AddPickup(root, Item.Herb, ox + 33f, 10f);
         AddPickup(root, Item.PotatoSeeds, ox + 20f, 8f);
+
+        // ================= FARMHOUSE INTERIOR =================
+        BuildInterior(root, interior, interiorWidth, interiorHeight);
     }
+
+    // ---------------------------------------------------------------- interior
+
+    static void BuildInterior(Transform root, Vector2Int o, int w, int h)
+    {
+        float ix = o.x, iy = o.y;
+        const int OnWall = -14; // wall decorations: above the wall tiles, below characters
+
+        // Front door (leads back outside)
+        Add(root, "interior door", DoorClosed, ix + w * 0.5f, iy + 0.05f, order: OnWall);
+        AddTeleporter(root, new Vector2(ix + w * 0.5f, iy + 1.4f), new Vector2(1.8f, 0.6f), new Vector2(MapOffsetForHouse + 6.5f, 11.0f));
+
+        // On the back wall
+        Add(root, "window", Window, ix + 4.6f, iy + 8.2f, order: OnWall);
+        Add(root, "window", Window, ix + 9.4f, iy + 8.2f, order: OnWall);
+        Add(root, "picture", Picture, ix + 7f, iy + 8.5f, order: OnWall);
+
+        // Bed (sleep with E) and a lamp
+        var bed = Add(root, "Bed", Bed, ix + 2.2f, iy + 6.0f, new Vector2(0.9f, 1.7f), new Vector2(0f, 0.9f));
+        bed.AddComponent<global::Bed>();
+        Add(root, "lamp", Lamp, ix + 3.6f, iy + 6.8f, new Vector2(0.4f, 0.3f), new Vector2(0f, 0.2f));
+
+        // Dining table with two stools
+        Add(root, "table", TableWide, ix + 7.2f, iy + 3.8f, new Vector2(1.4f, 0.5f), new Vector2(0f, 0.3f));
+        Add(root, "stool", Stool, ix + 5.8f, iy + 3.4f, new Vector2(0.5f, 0.3f), new Vector2(0f, 0.2f));
+        Add(root, "stool", Stool, ix + 8.6f, iy + 3.4f, new Vector2(0.5f, 0.3f), new Vector2(0f, 0.2f));
+
+        // Long table by the right wall
+        Add(root, "table", TableTall, ix + 11.5f, iy + 5.4f, new Vector2(0.9f, 1.6f), new Vector2(0f, 1f));
+
+        // Loot
+        AddChest(root, ix + 11.7f, iy + 2f);
+        AddPickup(root, Item.Milk, ix + 3.5f, iy + 2.8f);
+        AddPickup(root, Item.Flower, ix + 4.6f, iy + 5.3f);
+        AddPickup(root, Item.Herb, ix + 9.8f, iy + 2.5f);
+    }
+
+    static float MapOffsetForHouse; // x offset of the map the house is on (set in Build)
 
     // ---------------------------------------------------------------- helpers
 
@@ -116,7 +176,7 @@ public static class FarmWorld
 
     /// <summary>Places a sprite so its bottom-centre sits at (x, y). Optional solid collider.</summary>
     static GameObject Add(Transform parent, string name, Sprite sprite, float x, float y,
-                          Vector2 solid = default, Vector2 solidOffset = default)
+                          Vector2 solid = default, Vector2 solidOffset = default, int? order = null)
     {
         var go = new GameObject(name);
         go.transform.SetParent(parent, false);
@@ -124,7 +184,7 @@ public static class FarmWorld
         var sr = go.AddComponent<SpriteRenderer>();
         sr.sprite = sprite;
         SpriteMaterial.Apply(sr);
-        sr.sortingOrder = OrderFor(y);
+        sr.sortingOrder = order ?? OrderFor(y);
         if (solid.x > 0f)
         {
             var box = go.AddComponent<BoxCollider2D>();
@@ -132,6 +192,17 @@ public static class FarmWorld
             box.offset = solidOffset;
         }
         return go;
+    }
+
+    static void AddTeleporter(Transform parent, Vector2 position, Vector2 size, Vector2 destination)
+    {
+        var go = new GameObject("Door (teleporter)");
+        go.transform.SetParent(parent, false);
+        go.transform.position = position;
+        var box = go.AddComponent<BoxCollider2D>();
+        box.isTrigger = true;
+        box.size = size;
+        go.AddComponent<Teleporter>().Init(destination);
     }
 
     static void AddChest(Transform parent, float x, float y)
