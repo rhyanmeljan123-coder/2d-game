@@ -95,6 +95,10 @@ public class PlayerController : MonoBehaviour
 
     float speedThisFrame;
 
+    /// <summary>The direction the player is looking (used for interacting).</summary>
+    public Vector2 FacingDir =>
+        facing == Facing.Up ? Vector2.up : facing == Facing.Down ? Vector2.down : (faceLeft ? Vector2.left : Vector2.right);
+
     void FixedUpdate()
     {
         // No movement while swinging

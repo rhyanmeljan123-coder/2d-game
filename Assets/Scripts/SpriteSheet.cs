@@ -43,6 +43,30 @@ public static class SpriteSheet
         return result;
     }
 
+    static readonly Dictionary<string, Sprite> cutCache = new Dictionary<string, Sprite>();
+
+    /// <summary>
+    /// Cuts one sprite out of a texture. x, y, w, h are in pixels measured from the TOP-LEFT of the image
+    /// (like an image editor); pivotPx is measured from the bottom-left of the cut.
+    /// </summary>
+    public static Sprite Cut(string resourcePath, int x, int y, int w, int h, Vector2 pivotPx)
+    {
+        string key = $"{resourcePath}|{x},{y},{w},{h}|{pivotPx}";
+        if (cutCache.TryGetValue(key, out var cached) && cached != null) return cached;
+
+        var tex = Resources.Load<Texture2D>(resourcePath);
+        if (tex == null)
+        {
+            Debug.LogError("SpriteSheet: could not load Resources/" + resourcePath);
+            return null;
+        }
+        var rect = new Rect(x, tex.height - y - h, w, h);
+        var s = Sprite.Create(tex, rect, new Vector2(pivotPx.x / w, pivotPx.y / h), PixelsPerUnit, 0, SpriteMeshType.FullRect);
+        s.name = $"{tex.name}_{x}_{y}";
+        cutCache[key] = s;
+        return s;
+    }
+
     /// <summary>Gets frames [startCol, startCol+count) from one row.</summary>
     public static Sprite[] Row(Sprite[,] sheet, int row, int startCol, int count)
     {

@@ -14,13 +14,17 @@ using UnityEngine.Tilemaps;
 public class SimpleMapBuilder : MonoBehaviour
 {
     [Header("Map size (in tiles, 1 tile = 16px = 1 unit)")]
-    public int width = 40;
+    public int width = 40;          // first map
     public int height = 24;
+    public int springMapWidth = 40; // second map (placed right next to the first one)
+
+    /// <summary>Total world width: both maps side by side.</summary>
+    public int TotalWidth => width + springMapWidth;
 
     const string ResPath = "Map/";
 
     readonly Dictionary<string, Tile> tileCache = new Dictionary<string, Tile>();
-    Tilemap groundMap, pathMap, waterMap;
+    Tilemap groundMap, detailMap, pathMap, waterMap;
     GameObject generatedRoot;
     const string RootName = "Generated";
 
@@ -66,6 +70,7 @@ public class SimpleMapBuilder : MonoBehaviour
         gridGo.AddComponent<Grid>(); // default cell size 1x1
 
         groundMap = CreateLayer(gridGo.transform, "Ground", -30, false);
+        detailMap = CreateLayer(gridGo.transform, "Details", -25, false);
         pathMap = CreateLayer(gridGo.transform, "Path", -20, false);
         waterMap = CreateLayer(gridGo.transform, "Water", -10, true);
 
@@ -73,6 +78,8 @@ public class SimpleMapBuilder : MonoBehaviour
         BuildPath(3, 9, 34, 3);      // x, y, w, h  (sand road across the map)
         BuildPond(27, 14, 8, 6);     // pond in the upper right
         BuildDecorations();
+        BuildSpringMap(width);                          // second map, right beside the first
+        FarmWorld.Build(generatedRoot.transform, width); // objects & items for both maps
         BuildBoundaries();
         if (!Application.isPlaying) GameSetup.CreatePreviews(generatedRoot.transform); // visible in Scene view
 
@@ -131,6 +138,38 @@ public class SimpleMapBuilder : MonoBehaviour
         }
     }
 
+    // ---------- second map (spring farm) ----------
+
+    void BuildSpringMap(int ox)
+    {
+        int w = springMapWidth;
+        var grass = GetTile("Map2/sp_grass");
+        for (int x = 0; x < w; x++)
+            for (int y = 0; y < height; y++)
+                groundMap.SetTile(new Vector3Int(ox + x, y, 0), grass);
+
+        // Scatter small flowers / grass tufts on the open grass
+        var rng = new System.Random(7);
+        for (int i = 0; i < 90; i++)
+        {
+            int x = rng.Next(0, w), y = rng.Next(0, height);
+            int variant = rng.Next(0, 4);
+            if (InSpringBuildings(x, y)) continue;
+            detailMap.SetTile(new Vector3Int(ox + x, y, 0), GetTile("Map2/sp_detail_" + variant));
+        }
+
+        Fill9(pathMap, "Map2/sp_path", ox + 1, 9, 34, 3);   // road (same row as the first map's road)
+        Fill9(pathMap, "Map2/sp_path", ox + 12, 13, 14, 8); // farm yard
+        Fill9(waterMap, "Map2/sp_pond", ox + 29, 14, 7, 6); // pond with a cliff edge
+    }
+
+    // Areas of the spring map that should stay free of grass details (relative tile coordinates)
+    static bool InSpringBuildings(int x, int y) =>
+        (y >= 8 && y <= 12) ||                 // road
+        (x >= 11 && x <= 27 && y >= 12 && y <= 22) || // yard
+        (x >= 28 && x <= 37 && y >= 13 && y <= 21) || // pond
+        (x >= 3 && x <= 10 && y >= 11 && y <= 19);    // house
+
     // ---------- boundaries ----------
 
     /// <summary>Invisible walls around the map so nobody walks off the edge.</summary>
@@ -138,10 +177,11 @@ public class SimpleMapBuilder : MonoBehaviour
     {
         var root = new GameObject("Boundaries").transform;
         root.SetParent(generatedRoot.transform, false);
+        int w = TotalWidth;
         AddWall(root, new Vector2(-0.5f, height * 0.5f), new Vector2(1f, height + 2f));
-        AddWall(root, new Vector2(width + 0.5f, height * 0.5f), new Vector2(1f, height + 2f));
-        AddWall(root, new Vector2(width * 0.5f, -0.5f), new Vector2(width + 2f, 1f));
-        AddWall(root, new Vector2(width * 0.5f, height + 0.5f), new Vector2(width + 2f, 1f));
+        AddWall(root, new Vector2(w + 0.5f, height * 0.5f), new Vector2(1f, height + 2f));
+        AddWall(root, new Vector2(w * 0.5f, -0.5f), new Vector2(w + 2f, 1f));
+        AddWall(root, new Vector2(w * 0.5f, height + 0.5f), new Vector2(w + 2f, 1f));
     }
 
     static void AddWall(Transform parent, Vector2 center, Vector2 size)
@@ -211,8 +251,9 @@ public class SimpleMapBuilder : MonoBehaviour
     {
         if (tileCache.TryGetValue(spriteName, out var cached)) return cached;
 
-        var sprite = Resources.Load<Sprite>(ResPath + spriteName);
-        if (sprite == null) Debug.LogError($"SimpleMapBuilder: missing sprite Resources/{ResPath}{spriteName}");
+        string path = spriteName.Contains("/") ? spriteName : ResPath + spriteName;
+        var sprite = Resources.Load<Sprite>(path);
+        if (sprite == null) Debug.LogError($"SimpleMapBuilder: missing sprite Resources/{path}");
 
         var tile = ScriptableObject.CreateInstance<Tile>();
         tile.hideFlags = HideFlags.DontSave;
@@ -230,7 +271,7 @@ public class SimpleMapBuilder : MonoBehaviour
         cam.clearFlags = CameraClearFlags.SolidColor;
         cam.backgroundColor = Color.black;
         // Fit the whole map on screen
-        cam.orthographicSize = Mathf.Max(height * 0.5f, width * 0.5f / cam.aspect);
-        cam.transform.position = new Vector3(width * 0.5f, height * 0.5f, -10f);
+        cam.orthographicSize = Mathf.Max(height * 0.5f, TotalWidth * 0.5f / cam.aspect);
+        cam.transform.position = new Vector3(TotalWidth * 0.5f, height * 0.5f, -10f);
     }
 }

@@ -1,14 +1,25 @@
 using UnityEditor;
 
 /// <summary>
-/// Makes every PNG in a "Resources/Map" or "Resources/Characters" folder import as a crisp 16-PPU pixel-art sprite,
+/// Makes every PNG in a pixel-art "Resources" folder (Map, Map2, Characters, Items, Objects) import as a crisp 16-PPU pixel-art sprite,
 /// so the map tiles line up on a 1x1 unit grid.
 /// </summary>
 public class MapTextureImporter : AssetPostprocessor
 {
+    static readonly string[] Folders =
+    {
+        "/Resources/Map/", "/Resources/Map2/", "/Resources/Characters/", "/Resources/Items/", "/Resources/Objects/",
+    };
+
+    static bool IsPixelArtFolder(string path)
+    {
+        foreach (var f in Folders) if (path.Contains(f)) return true;
+        return false;
+    }
+
     void OnPreprocessTexture()
     {
-        if (!assetPath.Contains("/Resources/Map/") && !assetPath.Contains("/Resources/Characters/")) return;
+        if (!IsPixelArtFolder(assetPath)) return;
 
         var importer = (TextureImporter)assetImporter;
         importer.textureType = TextureImporterType.Sprite;

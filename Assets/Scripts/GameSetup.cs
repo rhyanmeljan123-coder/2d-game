@@ -17,10 +17,10 @@ public static class GameSetup
     // sheet, pivot (px above cell bottom), collider size, spawn positions
     public static readonly AnimalGroup[] Groups =
     {
-        new AnimalGroup { sheet = "chicken", pivotYPx = 9f, colliderSize = new Vector2(0.5f, 0.35f), positions = new[] { new Vector2(13f, 7.5f), new Vector2(15f, 6.5f), new Vector2(14.5f, 8f) } },
-        new AnimalGroup { sheet = "cow",     pivotYPx = 7f, colliderSize = new Vector2(1.1f, 0.5f),  positions = new[] { new Vector2(28f, 6.5f), new Vector2(31f, 8f) } },
-        new AnimalGroup { sheet = "pig",     pivotYPx = 9f, colliderSize = new Vector2(0.9f, 0.4f),  positions = new[] { new Vector2(8f, 7f), new Vector2(10.5f, 5f) } },
-        new AnimalGroup { sheet = "sheep",   pivotYPx = 9f, colliderSize = new Vector2(0.9f, 0.4f),  positions = new[] { new Vector2(24f, 17f), new Vector2(21f, 16f) } },
+        new AnimalGroup { sheet = "chicken", pivotYPx = 9f, colliderSize = new Vector2(0.5f, 0.35f), positions = new[] { new Vector2(13f, 7.5f), new Vector2(15f, 6.5f), new Vector2(14.5f, 8f), new Vector2(53f, 7f), new Vector2(55f, 8.5f) } },
+        new AnimalGroup { sheet = "cow",     pivotYPx = 7f, colliderSize = new Vector2(1.1f, 0.5f),  positions = new[] { new Vector2(28f, 6.5f), new Vector2(31f, 8f), new Vector2(66f, 4.5f) } },
+        new AnimalGroup { sheet = "pig",     pivotYPx = 9f, colliderSize = new Vector2(0.9f, 0.4f),  positions = new[] { new Vector2(8f, 7f), new Vector2(10.5f, 5f), new Vector2(58f, 5f) } },
+        new AnimalGroup { sheet = "sheep",   pivotYPx = 9f, colliderSize = new Vector2(0.9f, 0.4f),  positions = new[] { new Vector2(24f, 17f), new Vector2(21f, 16f), new Vector2(72f, 7f), new Vector2(77f, 6f) } },
     };
 
     /// <summary>
@@ -59,10 +59,13 @@ public static class GameSetup
     static void Spawn()
     {
         var map = Object.FindFirstObjectByType<SimpleMapBuilder>();
-        var mapSize = map != null ? new Vector2(map.width, map.height) : new Vector2(40f, 24f);
+        var mapSize = map != null ? new Vector2(map.TotalWidth, map.height) : new Vector2(80f, 24f);
 
         var player = Object.FindFirstObjectByType<PlayerController>();
         if (player == null) player = CreatePlayer(PlayerStart);
+
+        if (player.GetComponent<PlayerInteractor>() == null) player.gameObject.AddComponent<PlayerInteractor>();
+        if (Object.FindFirstObjectByType<GameHud>() == null) new GameObject("HUD").AddComponent<GameHud>();
 
         var cam = Camera.main;
         if (cam != null)
@@ -91,7 +94,9 @@ public static class GameSetup
         box.offset = new Vector2(0f, 0.15f);
         go.AddComponent<SpriteRenderer>();
         go.AddComponent<SimpleAnimator>();
-        return go.AddComponent<PlayerController>();
+        var pc = go.AddComponent<PlayerController>();
+        go.AddComponent<PlayerInteractor>();
+        return pc;
     }
 
     static void SpawnGroup(Transform parent, string sheet, float pivotYPx, Vector2 colliderSize, Vector2[] positions)
