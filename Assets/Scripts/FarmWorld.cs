@@ -70,6 +70,23 @@ public static class FarmWorld
         AddPickup(root, Item.PumpkinSeeds, 9f, 10f);
         AddPickup(root, Item.PeaSeeds, 30f, 10f);
 
+        // Market stall (sell crops & loot for coins, buy seeds) with banners
+        var stall = Add(root, "Market stall", TableWide, 18f, 6f, new Vector2(1.4f, 0.5f), new Vector2(0f, 0.3f));
+        stall.AddComponent<ShopStall>();
+        Props.Flag(root, 16.5f, 5.9f);
+        Props.Flag(root, 19.5f, 5.9f);
+
+        // Banners at the cave entrance, boxes, flasks and coins
+        Props.Flag(root, 21.3f, 19.8f);
+        Props.Flag(root, 26.7f, 19.8f);
+        Props.Box(root, 5.5f, 13.2f, 1);
+        Props.Box(root, 33f, 9.2f, 3);
+        Props.BuffFlask(root, 36f, 4f, 0);
+        AddPickup(root, Item.RedFlask, 28f, 3f);
+        AddPickup(root, Item.Coin, 7f, 11f, 3);
+        AddPickup(root, Item.Coin, 21f, 3f, 2);
+        AddPickup(root, Item.Coin, 35f, 20f, 4);
+
         // ================= MAP 2 (spring farm) =================
         // Red farmhouse
         var house = Add(root, "house", House, ox + 6.5f, 12.2f, solid: new Vector2(1.5f, 2.4f), solidOffset: new Vector2(-1.55f, 1.2f));
@@ -131,6 +148,16 @@ public static class FarmWorld
         AddPickup(root, Item.Flower, ox + 2f, 21f);
         AddPickup(root, Item.Herb, ox + 33f, 10f);
         AddPickup(root, Item.PotatoSeeds, ox + 20f, 8f);
+        Props.Box(root, ox + 12f, 5.5f, 2);
+        Props.Box(root, ox + 24f, 7.5f, 3);
+        Props.Box(root, ox + 2f, 14f, 0);
+        Props.BuffFlask(root, ox + 20f, 3.5f, 1);
+        AddPickup(root, Item.RedFlask, ox + 36f, 15f);
+        AddPickup(root, Item.Coin, ox + 5f, 8f, 3);
+        AddPickup(root, Item.Coin, ox + 30f, 3f, 2);
+        AddPickup(root, Item.Coin, ox + 33f, 19f, 5);
+        Props.Flag(root, ox + 3.2f, 11.9f);
+        Props.Flag(root, ox + 9.8f, 11.9f);
 
         // ================= FARMHOUSE INTERIOR =================
         BuildInterior(root, interior, interiorWidth, interiorHeight);
@@ -216,13 +243,26 @@ public static class FarmWorld
         go.AddComponent<Teleporter>().Init(destination);
     }
 
-    public static void AddChest(Transform parent, float x, float y)
+    /// <summary>An animated chest. big = the silver dungeon chest, otherwise the small wooden one.</summary>
+    public static void AddChest(Transform parent, float x, float y, LootKind kind = LootKind.Common, bool big = false)
     {
-        var go = Add(parent, "Chest", ChestClosed, x, y, new Vector2(0.8f, 0.5f), new Vector2(0f, 0.25f));
-        go.AddComponent<Chest>().Init(go.GetComponent<SpriteRenderer>(), ChestOpen);
+        var closed = TrapSprites.Frames(big ? "chest" : "mini_chest", 16, 16, new Vector2(8, 2));
+        var open = TrapSprites.Frames(big ? "chest_open" : "mini_chest_open", 16, 16, new Vector2(8, 2));
+
+        var go = new GameObject(kind == LootKind.Common ? "Chest" : "Locked chest (" + kind + ")");
+        go.transform.SetParent(parent, false);
+        go.transform.position = new Vector3(x, y, 0f);
+        var sr = go.AddComponent<SpriteRenderer>();
+        SpriteMaterial.Apply(sr);
+        sr.sortingOrder = OrderFor(y);
+        var box = go.AddComponent<BoxCollider2D>();
+        box.size = new Vector2(0.8f, 0.5f);
+        box.offset = new Vector2(0f, 0.3f);
+        var anim = go.AddComponent<SimpleAnimator>();
+        go.AddComponent<Chest>().Init(anim, closed, open, kind);
     }
 
-    public static void AddPickup(Transform parent, Item item, float x, float y)
+    public static void AddPickup(Transform parent, Item item, float x, float y, int amount = 1)
     {
         var go = new GameObject("Pickup_" + item);
         go.transform.SetParent(parent, false);
@@ -235,7 +275,7 @@ public static class FarmWorld
         var col = go.AddComponent<CircleCollider2D>();
         col.isTrigger = true;
         col.radius = 0.7f;
-        go.AddComponent<Pickup>().Init(item, 1);
+        go.AddComponent<Pickup>().Init(item, amount);
     }
 
     static void AddPlot(Transform parent, float x, float y)

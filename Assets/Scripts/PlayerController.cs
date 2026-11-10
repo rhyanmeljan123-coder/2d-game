@@ -33,6 +33,12 @@ public class PlayerController : MonoBehaviour
 
     public Health Health { get; private set; }
 
+    float speedBoostUntil, strengthBoostUntil;
+    public float SpeedBoostLeft => Mathf.Max(0f, speedBoostUntil - Time.time);
+    public float StrengthBoostLeft => Mathf.Max(0f, strengthBoostUntil - Time.time);
+    public void AddSpeedBoost(float seconds) => speedBoostUntil = Mathf.Max(speedBoostUntil, Time.time) + seconds;
+    public void AddStrengthBoost(float seconds) => strengthBoostUntil = Mathf.Max(strengthBoostUntil, Time.time) + seconds;
+
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -48,6 +54,7 @@ public class PlayerController : MonoBehaviour
 
         rb.gravityScale = 0f;
         rb.freezeRotation = true;
+        rb.sleepMode = RigidbodySleepMode2D.NeverSleep; // so traps keep detecting a player who stands still
         rb.interpolation = RigidbodyInterpolation2D.Interpolate;
         rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
 
@@ -116,7 +123,7 @@ public class PlayerController : MonoBehaviour
         sr.flipX = faceLeft;
         sr.color = Time.time < flashUntil ? new Color(1f, 0.45f, 0.45f) : Color.white;
         sr.sortingOrder = 1000 - Mathf.RoundToInt(transform.position.y * 10f);
-        speedThisFrame = run ? runSpeed : walkSpeed;
+        speedThisFrame = (run ? runSpeed : walkSpeed) * (SpeedBoostLeft > 0f ? 1.4f : 1f);
     }
 
     float speedThisFrame;
@@ -157,7 +164,7 @@ public class PlayerController : MonoBehaviour
             var enemy = hit.GetComponentInParent<Enemy>();
             if (enemy == null) continue;
             var hp = enemy.GetComponent<Health>();
-            if (hp != null) hp.TakeDamage(swordDamage, transform.position);
+            if (hp != null) hp.TakeDamage(swordDamage + (StrengthBoostLeft > 0f ? 2 : 0), transform.position);
         }
     }
 

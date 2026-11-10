@@ -4,6 +4,15 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+/// <summary>One row of a list menu (crafting, trading).</summary>
+public class MenuEntry
+{
+    public Item icon;
+    public string title, detail, button;
+    public bool enabled = true;
+    public Action action;
+}
+
 /// <summary>On-screen display: health, inventory, controls, interaction prompt, pop-up messages and the crafting menu.</summary>
 public class GameHud : MonoBehaviour
 {
@@ -20,20 +29,29 @@ public class GameHud : MonoBehaviour
     float fadeAlpha;
     public static bool IsFading { get; private set; }
 
-    // crafting menu
-    static bool craftingOpen;
-    static int craftSelected;
-    static int craftOpenedFrame;
-    public static bool UiOpen => craftingOpen;
+    // generic list menu (crafting table, market stall)
+    static bool menuOpen;
+    static int menuSelected, menuScroll, menuOpenedFrame;
+    static string menuTitle, menuSubtitle;
+    static Func<List<MenuEntry>> menuProvider;
+    static bool menuShowCoins;
+    public static bool UiOpen => menuOpen;
+    const int VisibleRows = 7;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void ResetStatics() { toasts.Clear(); instance = null; IsFading = false; craftingOpen = false; }
+    static void ResetStatics() { toasts.Clear(); instance = null; IsFading = false; menuOpen = false; }
 
-    public static void OpenCrafting()
+    /// <summary>Opens a list menu. The provider is called every frame so counts and prices stay current.</summary>
+    public static void OpenMenu(string title, string subtitle, Func<List<MenuEntry>> provider, string extra = null)
     {
-        craftingOpen = true;
-        craftSelected = 0;
-        craftOpenedFrame = Time.frameCount;
+        menuOpen = true;
+        menuTitle = title;
+        menuSubtitle = subtitle;
+        menuProvider = provider;
+        menuShowCoins = extra == "Coins";
+        menuSelected = 0;
+        menuScroll = 0;
+        menuOpenedFrame = Time.frameCount;
     }
 
     void Awake() => instance = this;
@@ -62,18 +80,26 @@ public class GameHud : MonoBehaviour
 
     void Update()
     {
-        if (!craftingOpen) return;
+        if (!menuOpen) return;
         var kb = Keyboard.current;
         if (kb == null) return;
 
         if (kb.escapeKey.wasPressedThisFrame || kb.tabKey.wasPressedThisFrame ||
-            (kb.eKey.wasPressedThisFrame && Time.frameCount != craftOpenedFrame))
-        { craftingOpen = false; return; }
+            (kb.eKey.wasPressedThisFrame && Time.frameCount != menuOpenedFrame))
+        { menuOpen = false; return; }
 
-        int n = Recipes.All.Length;
-        if (kb.upArrowKey.wasPressedThisFrame || kb.wKey.wasPressedThisFrame) craftSelected = (craftSelected + n - 1) % n;
-        if (kb.downArrowKey.wasPressedThisFrame || kb.sKey.wasPressedThisFrame) craftSelected = (craftSelected + 1) % n;
-        if (kb.enterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame) Recipes.Craft(Recipes.All[craftSelected]);
+        var entries = menuProvider();
+        int n = entries.Count;
+        if (n == 0) { menuSelected = 0; return; }
+        menuSelected = Mathf.Clamp(menuSelected, 0, n - 1);
+
+        if (kb.upArrowKey.wasPressedThisFrame || kb.wKey.wasPressedThisFrame) menuSelected = (menuSelected + n - 1) % n;
+        if (kb.downArrowKey.wasPressedThisFrame || kb.sKey.wasPressedThisFrame) menuSelected = (menuSelected + 1) % n;
+        if (menuSelected < menuScroll) menuScroll = menuSelected;
+        if (menuSelected >= menuScroll + VisibleRows) menuScroll = menuSelected - VisibleRows + 1;
+
+        if ((kb.enterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame) && entries[menuSelected].enabled)
+            entries[menuSelected].action();
     }
 
     // ------------------------------------------------------------ drawing
@@ -111,10 +137,10 @@ public class GameHud : MonoBehaviour
 
         // --- controls ---
         GUI.Label(new Rect(W - 440f, 6f, 432f, 56f),
-            "WASD / arrows: move   Shift: run   Space / J / click: sword\nE: use / plant / harvest / open   1-5: choose seed\nF: eat food to heal   Crafting table: inside the farmhouse", hint);
+            "WASD / arrows: move   Shift: run   Space / J / click: sword\nE: use / plant / harvest / open   1-5: choose seed   F: eat to heal\nCrafting table: farmhouse   Market stall: sell for coins   Watch out for traps!", hint);
 
         // --- interaction prompt ---
-        if (!craftingOpen && !string.IsNullOrEmpty(PlayerInteractor.CurrentPrompt))
+        if (!menuOpen && !string.IsNullOrEmpty(PlayerInteractor.CurrentPrompt))
         {
             var rect = new Rect(W * 0.5f - 200f, H - 64f, 400f, 30f);
             GUI.color = new Color(0f, 0f, 0f, 0.55f);
@@ -135,7 +161,7 @@ public class GameHud : MonoBehaviour
         }
         GUI.color = Color.white;
 
-        if (craftingOpen) DrawCrafting(W, H, white);
+        if (menuOpen) DrawMenu(W, H, white);
 
         // --- fade to black (doors, sleeping) ---
         if (fadeAlpha > 0f)
@@ -162,10 +188,26 @@ public class GameHud : MonoBehaviour
         GUI.DrawTexture(new Rect(x, y, w * frac, h), white);
         GUI.color = Color.white;
         GUI.Label(new Rect(x, y, w, h), $"HP  {hp.current} / {hp.max}", bar);
+
+        // coins
+        var coin = Inventory.Icon(Item.Coin);
+        if (coin != null)
+        {
+            var tex = coin.texture; var tr = coin.rect;
+            GUI.DrawTextureWithTexCoords(new Rect(x, y + h + 6f, 20f, 20f), tex,
+                new Rect(tr.x / tex.width, tr.y / tex.height, tr.width / tex.width, tr.height / tex.height));
+        }
+        GUI.Label(new Rect(x + 24f, y + h + 6f, 80f, 20f), Inventory.Get(Item.Coin).ToString(), rowName);
+
+        // active boosts
+        float bx = x + 110f;
+        if (player.SpeedBoostLeft > 0f) { GUI.Label(new Rect(bx, y + h + 6f, 150f, 20f), $"Speed {Mathf.CeilToInt(player.SpeedBoostLeft)}s", rowInfo); bx += 80f; }
+        if (player.StrengthBoostLeft > 0f) GUI.Label(new Rect(bx, y + h + 6f, 150f, 20f), $"Strength {Mathf.CeilToInt(player.StrengthBoostLeft)}s", rowInfo);
     }
 
     static readonly Item[] BackpackOrder =
     {
+        Item.SilverKey, Item.GoldKey, Item.RedFlask, Item.BigRedFlask,
         Item.Pumpkin, Item.Potato, Item.Carrot, Item.Tomato, Item.Peas, Item.Milk, Item.Herb, Item.Flower, Item.SlimeGel, Item.Bone,
         Item.Salad, Item.VegStew, Item.PumpkinSoup, Item.BoneBroth, Item.HealingPotion, Item.HeartyPie,
     };
@@ -215,32 +257,39 @@ public class GameHud : MonoBehaviour
         }
     }
 
-    void DrawCrafting(float W, float H, Texture2D white)
+    void DrawMenu(float W, float H, Texture2D white)
     {
+        var entries = menuProvider();
+
         GUI.color = new Color(0f, 0f, 0f, 0.55f);
         GUI.DrawTexture(new Rect(0f, 0f, W, H), white);
 
-        float w = 560f, rowH = 56f, h = 90f + rowH * Recipes.All.Length + 34f;
+        float w = 600f, rowH = 56f, h = 96f + rowH * VisibleRows + 34f;
         var win = new Rect(W * 0.5f - w * 0.5f, H * 0.5f - h * 0.5f, w, h);
         GUI.color = new Color(0.30f, 0.18f, 0.12f, 0.98f);
         GUI.DrawTexture(win, white);
         GUI.color = new Color(0.17f, 0.10f, 0.08f, 1f);
         GUI.DrawTexture(new Rect(win.x + 4f, win.y + 4f, win.width - 8f, win.height - 8f), white);
         GUI.color = Color.white;
-        GUI.Label(new Rect(win.x, win.y + 8f, win.width, 30f), "Crafting table", title);
-        GUI.Label(new Rect(win.x, win.y + 38f, win.width, 22f), "Turn crops and dungeon drops into food that heals you", hint2());
+        GUI.Label(new Rect(win.x, win.y + 8f, win.width, 30f), menuTitle, title);
+        GUI.Label(new Rect(win.x, win.y + 38f, win.width, 22f), menuSubtitle, hint2());
+        if (menuShowCoins) GUI.Label(new Rect(win.xMax - 140f, win.y + 12f, 120f, 22f), $"Coins: {Inventory.Get(Item.Coin)}", rowName);
 
-        for (int i = 0; i < Recipes.All.Length; i++)
+        if (entries.Count == 0)
+            GUI.Label(new Rect(win.x, win.y + 120f, win.width, 30f), "Nothing here right now.", hint2());
+
+        for (int v = 0; v < VisibleRows; v++)
         {
-            var r = Recipes.All[i];
-            bool can = Recipes.CanCraft(r);
-            var row = new Rect(win.x + 14f, win.y + 70f + i * rowH, win.width - 28f, rowH - 6f);
+            int i = menuScroll + v;
+            if (i >= entries.Count) break;
+            var e = entries[i];
+            var row = new Rect(win.x + 14f, win.y + 70f + v * rowH, win.width - 28f, rowH - 6f);
 
-            GUI.color = i == craftSelected ? new Color(1f, 0.85f, 0.3f, 0.35f) : new Color(1f, 1f, 1f, 0.07f);
+            GUI.color = i == menuSelected ? new Color(1f, 0.85f, 0.3f, 0.35f) : new Color(1f, 1f, 1f, 0.07f);
             GUI.DrawTexture(row, white);
             GUI.color = Color.white;
 
-            var icon = Inventory.Icon(r.result);
+            var icon = Inventory.Icon(e.icon);
             if (icon != null)
             {
                 var tex = icon.texture; var tr = icon.rect;
@@ -248,22 +297,23 @@ public class GameHud : MonoBehaviour
                     new Rect(tr.x / tex.width, tr.y / tex.height, tr.width / tex.width, tr.height / tex.height));
             }
 
-            rowName.normal.textColor = can ? Color.white : new Color(1f, 1f, 1f, 0.55f);
-            GUI.Label(new Rect(row.x + row.height + 4f, row.y + 3f, 300f, 22f), $"{r.name}   (+{Inventory.HealAmount(r.result)} HP)", rowName);
-            rowInfo.normal.textColor = can ? new Color(0.65f, 1f, 0.65f) : new Color(1f, 0.6f, 0.55f);
-            GUI.Label(new Rect(row.x + row.height + 4f, row.y + 26f, 330f, 20f), r.NeedsText(), rowInfo);
-            GUI.Label(new Rect(row.xMax - 200f, row.y + 26f, 100f, 20f), $"you have {Inventory.Get(r.result)}", rowInfo);
+            rowName.normal.textColor = e.enabled ? Color.white : new Color(1f, 1f, 1f, 0.55f);
+            GUI.Label(new Rect(row.x + row.height + 4f, row.y + 3f, 380f, 22f), e.title, rowName);
+            rowInfo.normal.textColor = e.enabled ? new Color(0.65f, 1f, 0.65f) : new Color(1f, 0.6f, 0.55f);
+            GUI.Label(new Rect(row.x + row.height + 4f, row.y + 26f, 400f, 20f), e.detail, rowInfo);
 
-            GUI.enabled = can;
-            if (GUI.Button(new Rect(row.xMax - 90f, row.y + 8f, 80f, row.height - 16f), "Craft"))
+            GUI.enabled = e.enabled;
+            if (GUI.Button(new Rect(row.xMax - 90f, row.y + 8f, 80f, row.height - 16f), e.button))
             {
-                craftSelected = i;
-                Recipes.Craft(r);
+                menuSelected = i;
+                e.action();
             }
             GUI.enabled = true;
         }
 
-        GUI.Label(new Rect(win.x, win.yMax - 30f, win.width, 22f), "W/S or arrows: choose     Enter / Space / click: craft     Esc / E: close", hint2());
+        if (entries.Count > VisibleRows)
+            GUI.Label(new Rect(win.x, win.yMax - 52f, win.width, 20f), $"{menuScroll + 1}-{Mathf.Min(entries.Count, menuScroll + VisibleRows)} of {entries.Count}   (W/S to scroll)", hint2());
+        GUI.Label(new Rect(win.x, win.yMax - 30f, win.width, 22f), "W/S or arrows: choose     Enter / Space / click: confirm     Esc / E: close", hint2());
     }
 
     GUIStyle hintStyle;

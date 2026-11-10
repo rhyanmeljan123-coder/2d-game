@@ -55,7 +55,6 @@ public static class DungeonWorld
     static readonly Vector2[] Slimes = { new Vector2(10.5f, 12.5f), new Vector2(21.5f, 10.5f), new Vector2(3.5f, 10.5f), new Vector2(5.5f, 15.5f) };
     static readonly Vector2[] Skeletons =
         { new Vector2(28.5f, 10.5f), new Vector2(28.5f, 15.5f), new Vector2(12.5f, 19.5f), new Vector2(19.5f, 19.5f), new Vector2(15.5f, 18.5f) };
-    static readonly Vector2[] Chests = { new Vector2(2.5f, 17.2f), new Vector2(29.5f, 17.2f), new Vector2(15.5f, 20.2f) };
 
     /// <summary>Where the player appears when entering (relative to the dungeon origin).</summary>
     public static Vector2 EntrySpawn => new Vector2(16f, 2.6f);
@@ -81,12 +80,78 @@ public static class DungeonWorld
 
         foreach (var p in Slimes) Enemy.Create(root, Enemy.Kind.Slime, origin + p);
         foreach (var p in Skeletons) Enemy.Create(root, Enemy.Kind.Skeleton, origin + p);
-        foreach (var p in Chests) FarmWorld.AddChest(root, origin.x + p.x, origin.y + p.y);
 
-        // A little supply of herbs and flowers growing in the dungeon
-        FarmWorld.AddPickup(root, Item.Herb, origin.x + 2.5f, origin.y + 9.5f);
-        FarmWorld.AddPickup(root, Item.Flower, origin.x + 29.5f, origin.y + 9.5f);
-        FarmWorld.AddPickup(root, Item.Herb, origin.x + 16f, origin.y + 6.5f);
+        float ox = origin.x, oy = origin.y;
+
+        // Chests: west is free, east needs the SILVER key (holds the gold key), north needs the GOLD key (the treasure)
+        FarmWorld.AddChest(root, ox + 2.5f, oy + 17.2f, LootKind.Common, true);
+        FarmWorld.AddChest(root, ox + 29.5f, oy + 17.2f, LootKind.SilverLocked, true);
+        FarmWorld.AddChest(root, ox + 15.5f, oy + 20.2f, LootKind.GoldLocked, true);
+        FarmWorld.AddPickup(root, Item.SilverKey, ox + 2.5f, oy + 8.7f);
+
+        // Supplies: herbs and flowers for potions, flasks and coins
+        FarmWorld.AddPickup(root, Item.Herb, ox + 4.5f, oy + 16.5f);
+        FarmWorld.AddPickup(root, Item.Flower, ox + 27.5f, oy + 9.5f);
+        FarmWorld.AddPickup(root, Item.Herb, ox + 16f, oy + 6.5f);
+        FarmWorld.AddPickup(root, Item.RedFlask, ox + 9.5f, oy + 12.5f);
+        Props.BuffFlask(root, ox + 9.5f, oy + 19.5f, 0);
+        Props.BuffFlask(root, ox + 29.5f, oy + 9.5f, 1);
+        FarmWorld.AddPickup(root, Item.Coin, ox + 13f, oy + 3f, 3);
+        FarmWorld.AddPickup(root, Item.Coin, ox + 22f, oy + 13f, 4);
+        FarmWorld.AddPickup(root, Item.Coin, ox + 4f, oy + 12f, 3);
+        FarmWorld.AddPickup(root, Item.Coin, ox + 20f, oy + 19f, 5);
+
+        // Crates
+        Props.Box(root, ox + 6.5f, oy + 8.7f, 0);
+        Props.Box(root, ox + 30f, oy + 8.7f, 1);
+        Props.Box(root, ox + 9f, oy + 18.7f, 2);
+        Props.Box(root, ox + 22f, oy + 18.7f, 3);
+        Props.Box(root, ox + 19.5f, oy + 1.6f, 1);
+
+        // Light: torches and candlesticks
+        Props.Torch(root, ox + 12.5f, oy + 1.2f);
+        Props.Torch(root, ox + 19.5f, oy + 1.2f);
+        Props.WallTorch(root, ox + 12.5f, oy + 4.0f);
+        Props.WallTorch(root, ox + 19.5f, oy + 4.0f);
+        Props.Candle(root, ox + 8.6f, oy + 9.2f);
+        Props.Candle(root, ox + 23.4f, oy + 9.2f, true);
+        Props.Candle(root, ox + 1.6f, oy + 17.4f);
+        Props.Candle(root, ox + 5.6f, oy + 17.4f, true);
+        Props.Candle(root, ox + 26.6f, oy + 17.4f);
+        Props.Candle(root, ox + 30.0f, oy + 17.4f, true);
+        Props.Candle(root, ox + 8.6f, oy + 20.4f);
+        Props.Candle(root, ox + 22.6f, oy + 20.4f, true);
+
+        // TRAPS
+        // spikes (x, y are tile centres; the last number staggers when each one starts)
+        Props.Spikes(root, ox + 15.5f, oy + 6.5f, 0.0f);   // corridor to the hub
+        Props.Spikes(root, ox + 16.5f, oy + 6.5f, 0.0f);
+        Props.Spikes(root, ox + 13.5f, oy + 12.5f, 0.8f);  // hub
+        Props.Spikes(root, ox + 14.5f, oy + 12.5f, 0.8f);
+        Props.Spikes(root, ox + 17.5f, oy + 10.5f, 1.6f);
+        Props.Spikes(root, ox + 18.5f, oy + 10.5f, 1.6f);
+        Props.Spikes(root, ox + 2.5f, oy + 12.5f, 0.4f);   // west room
+        Props.Spikes(root, ox + 3.5f, oy + 12.5f, 0.4f);
+        Props.Spikes(root, ox + 4.5f, oy + 13.5f, 1.2f);
+        Props.Spikes(root, ox + 27.5f, oy + 12.5f, 0.6f);  // east room
+        Props.Spikes(root, ox + 28.5f, oy + 12.5f, 0.6f);
+        Props.Spikes(root, ox + 27.5f, oy + 14.5f, 1.4f);
+        Props.Spikes(root, ox + 13.5f, oy + 19.5f, 0.2f);  // north hall
+        Props.Spikes(root, ox + 14.5f, oy + 19.5f, 0.2f);
+        Props.Spikes(root, ox + 17.5f, oy + 18.5f, 1.0f);
+        Props.Spikes(root, ox + 18.5f, oy + 18.5f, 1.0f);
+
+        // flamethrowers
+        Props.Flames(root, ox + 9.5f, oy + 9.0f, false, false, 0.5f);   // hub, shooting up from the floor edge
+        Props.Flames(root, ox + 22.5f, oy + 9.0f, false, false, 1.7f);
+        Props.Flames(root, ox + 1.0f, oy + 15.5f, true, false, 1.0f);   // west room, shooting right
+        Props.Flames(root, ox + 31.0f, oy + 15.0f, true, true, 2.0f);   // east room, shooting left
+
+        // arrow launchers in the hub's top wall (hole in the wall, arrows fly down the room)
+        Props.Arrows(root, ox + 9.5f, oy + 14.0f, 2.6f, 0.0f);
+        Props.Arrows(root, ox + 13.5f, oy + 14.0f, 2.6f, 0.65f);
+        Props.Arrows(root, ox + 18.5f, oy + 14.0f, 2.6f, 1.3f);
+        Props.Arrows(root, ox + 22.5f, oy + 14.0f, 2.6f, 1.95f);
     }
 
     /// <summary>The cave mouth on the outdoor map. Walk into the dark opening to go down.</summary>

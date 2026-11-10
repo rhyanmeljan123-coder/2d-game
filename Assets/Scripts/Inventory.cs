@@ -7,7 +7,9 @@ public enum Item
     PumpkinSeeds, PotatoSeeds, CarrotSeeds, TomatoSeeds, PeaSeeds,           // seed packets (5-9)
     Milk, Herb, Flower,                                                      // found items
     SlimeGel, Bone,                                                          // dungeon drops
-    Salad, VegStew, PumpkinSoup, BoneBroth, HealingPotion, HeartyPie         // crafted food & potions
+    Salad, VegStew, PumpkinSoup, BoneBroth, HealingPotion, HeartyPie,        // crafted food & potions
+    Coin, SilverKey, GoldKey,                                                // money and dungeon keys
+    RedFlask, BigRedFlask                                                    // healing flasks
 }
 
 /// <summary>The player's items. Static, so anything can add to it. Reset every time Play starts.</summary>
@@ -23,6 +25,8 @@ public static class Inventory
         "Milk", "Herb", "Flower",
         "Slime gel", "Bone",
         "Salad", "Vegetable stew", "Pumpkin soup", "Bone broth", "Healing potion", "Hearty pie",
+        "Coins", "Silver key", "Gold key",
+        "Red flask", "Big red flask",
     };
 
     // How much health each item restores when eaten (0 = can't be eaten)
@@ -33,6 +37,32 @@ public static class Inventory
         10, 15, 0,                // milk, herb, flower
         0, 0,                     // slime gel, bone
         30, 40, 50, 45, 70, 100,  // crafted
+        0, 0, 0,                  // coins, keys
+        25, 60,                   // red flasks
+    };
+
+    // What the market stall pays for one of each item (0 = can't be sold)
+    static readonly int[] sellPrice =
+    {
+        14, 8, 9, 10, 7,
+        0, 0, 0, 0, 0,
+        6, 8, 5,
+        12, 10,
+        40, 50, 60, 55, 80, 110,
+        0, 0, 0,
+        30, 70,
+    };
+
+    // What the market stall charges (0 = not for sale)
+    static readonly int[] buyPrice =
+    {
+        0, 0, 0, 0, 0,
+        8, 5, 5, 6, 5,
+        10, 0, 0,
+        0, 0,
+        0, 0, 0, 0, 0, 0,
+        0, 0, 0,
+        45, 0,
     };
 
     /// <summary>Which crop (0-4) is picked for planting. Change with keys 1-5.</summary>
@@ -53,6 +83,8 @@ public static class Inventory
     public static string Name(Item item) => names[(int)item];
     public static string CropName(int crop) => names[crop];
     public static int HealAmount(Item item) => heal[(int)item];
+    public static int SellPrice(Item item) => sellPrice[(int)item];
+    public static int BuyPrice(Item item) => buyPrice[(int)item];
 
     public static int Get(Item item) => counts[(int)item];
 
@@ -101,7 +133,7 @@ public static class Inventory
         return true;
     }
 
-    /// <summary>Icon from items.png (5x3 of 16px) or crafted.png (4x2 of 16px).</summary>
+    /// <summary>Icon from items.png (5x3 of 16px), crafted.png (4x2 of 16px) or the Traps strips.</summary>
     public static Sprite Icon(Item item)
     {
         int i = (int)item;
@@ -114,8 +146,14 @@ public static class Inventory
             var sheet = SpriteSheet.Slice("Items/items", 16, new Vector2(8, 8));
             return sheet.Length == 0 ? null : sheet[row, col];
         }
-        int j = i - (int)Item.SlimeGel;
-        var crafted = SpriteSheet.Slice("Items/crafted", 16, new Vector2(8, 8));
-        return crafted.Length == 0 ? null : crafted[j / 4, j % 4];
+        if (i < (int)Item.Coin)
+        {
+            int j = i - (int)Item.SlimeGel;
+            var crafted = SpriteSheet.Slice("Items/crafted", 16, new Vector2(8, 8));
+            return crafted.Length == 0 ? null : crafted[j / 4, j % 4];
+        }
+        string strip = item == Item.Coin ? "coin" : item == Item.SilverKey ? "key_silver" : item == Item.GoldKey ? "key_gold"
+                     : item == Item.RedFlask ? "flask_1" : "flask_4";
+        return SpriteSheet.Cut("Traps/" + strip, 0, 0, 16, 16, new Vector2(8, 8));
     }
 }

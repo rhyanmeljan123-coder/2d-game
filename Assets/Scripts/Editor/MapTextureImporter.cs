@@ -8,7 +8,7 @@ public class MapTextureImporter : AssetPostprocessor
 {
     static readonly string[] Folders =
     {
-        "/Resources/Map/", "/Resources/Map2/", "/Resources/Characters/", "/Resources/Items/", "/Resources/Objects/", "/Resources/Interior/",
+        "/Resources/Map/", "/Resources/Map2/", "/Resources/Characters/", "/Resources/Items/", "/Resources/Objects/", "/Resources/Interior/", "/Resources/Traps/",
     };
 
     static bool IsPixelArtFolder(string path)

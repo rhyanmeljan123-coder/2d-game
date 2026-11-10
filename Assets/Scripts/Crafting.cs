@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 
@@ -32,6 +33,25 @@ public static class Recipes
         new Recipe { name = "Hearty pie", result = Item.HeartyPie, needs = new[] { (Item.Pumpkin, 1), (Item.Potato, 2), (Item.Milk, 1) } },
     };
 
+    public static List<MenuEntry> BuildMenu()
+    {
+        var list = new List<MenuEntry>();
+        foreach (var r in All)
+        {
+            var recipe = r;
+            list.Add(new MenuEntry
+            {
+                icon = recipe.result,
+                title = $"{recipe.name}   (+{Inventory.HealAmount(recipe.result)} HP)",
+                detail = $"{recipe.NeedsText()}      you have {Inventory.Get(recipe.result)}",
+                button = "Craft",
+                enabled = CanCraft(recipe),
+                action = () => Craft(recipe),
+            });
+        }
+        return list;
+    }
+
     public static bool CanCraft(Recipe r)
     {
         foreach (var n in r.needs) if (Inventory.Get(n.item) < n.count) return false;
@@ -52,5 +72,6 @@ public static class Recipes
 public class CraftingTable : Interactable
 {
     public override string Prompt => "Craft food & potions [E]";
-    public override void Interact() => GameHud.OpenCrafting();
+    public override void Interact() =>
+        GameHud.OpenMenu("Crafting table", "Turn crops and dungeon drops into food that heals you", Recipes.BuildMenu);
 }
