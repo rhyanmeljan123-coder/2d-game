@@ -5,10 +5,12 @@ using UnityEngine.Tilemaps;
 /// <summary>
 /// Builds a simple top-down map from the Cute Fantasy tiles at runtime:
 /// grass field, a sand path, a pond (with collision), and a few trees, a house and a chest.
-/// Sprites are loaded from Assets/Resources/Map. If no SimpleMapBuilder exists in the scene,
-/// one is created automatically when Play starts.
-/// Optional: Tools > Simple Map > Add Map Builder To Scene.
+/// Sprites are loaded from Assets/Resources/Map.
+/// Runs in Edit mode too (ExecuteAlways), so the map shows in the Scene view. The generated
+/// objects are marked DontSave, so they are never written into the scene file.
+/// If no SimpleMapBuilder exists in the scene, one is created automatically when Play starts.
 /// </summary>
+[ExecuteAlways]
 public class SimpleMapBuilder : MonoBehaviour
 {
     [Header("Map size (in tiles, 1 tile = 16px = 1 unit)")]
@@ -19,6 +21,8 @@ public class SimpleMapBuilder : MonoBehaviour
 
     readonly Dictionary<string, Tile> tileCache = new Dictionary<string, Tile>();
     Tilemap groundMap, pathMap, waterMap;
+    GameObject generatedRoot;
+    const string RootName = "Generated";
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void AutoSpawn()
@@ -27,10 +31,38 @@ public class SimpleMapBuilder : MonoBehaviour
         new GameObject("SimpleMap").AddComponent<SimpleMapBuilder>();
     }
 
-    void Awake()
+    void OnEnable()
     {
+        Cleanup();
+        Build();
+    }
+
+    void OnDisable() => Cleanup();
+
+    void Cleanup()
+    {
+        // Remove anything we generated earlier (also catches leftovers after a script reload)
+        for (int i = transform.childCount - 1; i >= 0; i--)
+        {
+            var child = transform.GetChild(i).gameObject;
+            if (child.name == RootName) SafeDestroy(child);
+        }
+        generatedRoot = null;
+        tileCache.Clear();
+    }
+
+    static void SafeDestroy(Object o)
+    {
+        if (Application.isPlaying) Destroy(o); else DestroyImmediate(o);
+    }
+
+    void Build()
+    {
+        generatedRoot = new GameObject(RootName);
+        generatedRoot.transform.SetParent(transform, false);
+
         var gridGo = new GameObject("MapGrid");
-        gridGo.transform.SetParent(transform, false);
+        gridGo.transform.SetParent(generatedRoot.transform, false);
         gridGo.AddComponent<Grid>(); // default cell size 1x1
 
         groundMap = CreateLayer(gridGo.transform, "Ground", -30, false);
@@ -41,7 +73,12 @@ public class SimpleMapBuilder : MonoBehaviour
         BuildPath(3, 9, 34, 3);      // x, y, w, h  (sand road across the map)
         BuildPond(27, 14, 8, 6);     // pond in the upper right
         BuildDecorations();
-        SetupCamera();
+
+        // Everything generated is rebuilt on load, so keep it out of the saved scene file
+        foreach (var t in generatedRoot.GetComponentsInChildren<Transform>(true))
+            t.gameObject.hideFlags = HideFlags.DontSave;
+
+        if (Application.isPlaying) SetupCamera(); // don't touch the camera in Edit mode
     }
 
     // ---------- layers ----------
@@ -95,7 +132,7 @@ public class SimpleMapBuilder : MonoBehaviour
     void BuildDecorations()
     {
         var root = new GameObject("Decorations").transform;
-        root.SetParent(transform, false);
+        root.SetParent(generatedRoot.transform, false);
 
         // House above the road
         Place(root, "deco_house", 18f, 12.2f, 13, new Vector2(3.4f, 1.6f), new Vector2(0f, 0.9f));
@@ -152,6 +189,7 @@ public class SimpleMapBuilder : MonoBehaviour
         if (sprite == null) Debug.LogError($"SimpleMapBuilder: missing sprite Resources/{ResPath}{spriteName}");
 
         var tile = ScriptableObject.CreateInstance<Tile>();
+        tile.hideFlags = HideFlags.DontSave;
         tile.sprite = sprite;
         tile.colliderType = Tile.ColliderType.Grid;
         tileCache[spriteName] = tile;
