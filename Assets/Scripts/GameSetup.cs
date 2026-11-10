@@ -7,6 +7,54 @@ using UnityEngine;
 /// </summary>
 public static class GameSetup
 {
+    public static readonly Vector2 PlayerStart = new Vector2(20.5f, 7.5f);
+
+    public struct AnimalGroup
+    {
+        public string sheet; public float pivotYPx; public Vector2 colliderSize; public Vector2[] positions;
+    }
+
+    // sheet, pivot (px above cell bottom), collider size, spawn positions
+    public static readonly AnimalGroup[] Groups =
+    {
+        new AnimalGroup { sheet = "chicken", pivotYPx = 9f, colliderSize = new Vector2(0.5f, 0.35f), positions = new[] { new Vector2(13f, 7.5f), new Vector2(15f, 6.5f), new Vector2(14.5f, 8f) } },
+        new AnimalGroup { sheet = "cow",     pivotYPx = 7f, colliderSize = new Vector2(1.1f, 0.5f),  positions = new[] { new Vector2(28f, 6.5f), new Vector2(31f, 8f) } },
+        new AnimalGroup { sheet = "pig",     pivotYPx = 9f, colliderSize = new Vector2(0.9f, 0.4f),  positions = new[] { new Vector2(8f, 7f), new Vector2(10.5f, 5f) } },
+        new AnimalGroup { sheet = "sheep",   pivotYPx = 9f, colliderSize = new Vector2(0.9f, 0.4f),  positions = new[] { new Vector2(24f, 17f), new Vector2(21f, 16f) } },
+    };
+
+    /// <summary>
+    /// Edit-mode only: places plain sprites where the player and animals will spawn,
+    /// so they are visible in the Scene view. (The real, moving ones are spawned on Play.)
+    /// </summary>
+    public static void CreatePreviews(Transform parent)
+    {
+        var root = new GameObject("Characters (preview)").transform;
+        root.SetParent(parent, false);
+
+        var playerSheet = SpriteSheet.Slice("Characters/player", 32, new Vector2(16, 9));
+        if (playerSheet.Length > 0) CreatePreview(root, "Player (preview)", playerSheet[0, 0], PlayerStart);
+
+        foreach (var g in Groups)
+        {
+            var sheet = SpriteSheet.Slice("Characters/" + g.sheet, 32, new Vector2(16, g.pivotYPx));
+            if (sheet.Length == 0) continue;
+            for (int i = 0; i < g.positions.Length; i++)
+                CreatePreview(root, g.sheet + "_" + (i + 1) + " (preview)", sheet[0, 0], g.positions[i]);
+        }
+    }
+
+    static void CreatePreview(Transform parent, string name, Sprite sprite, Vector2 position)
+    {
+        var go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        go.transform.position = position;
+        var sr = go.AddComponent<SpriteRenderer>();
+        sr.sprite = sprite;
+        SpriteMaterial.Apply(sr);
+        sr.sortingOrder = 1000 - Mathf.RoundToInt(position.y * 10f);
+    }
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Spawn()
     {
@@ -14,7 +62,7 @@ public static class GameSetup
         var mapSize = map != null ? new Vector2(map.width, map.height) : new Vector2(40f, 24f);
 
         var player = Object.FindFirstObjectByType<PlayerController>();
-        if (player == null) player = CreatePlayer(new Vector2(20.5f, 7.5f));
+        if (player == null) player = CreatePlayer(PlayerStart);
 
         var cam = Camera.main;
         if (cam != null)
@@ -28,11 +76,7 @@ public static class GameSetup
         if (Object.FindFirstObjectByType<AnimalWander>() != null) return; // animals already in the scene
 
         var animals = new GameObject("Animals").transform;
-        // sheet, pivot (px above cell bottom), collider size, positions
-        SpawnGroup(animals, "chicken", 9f, new Vector2(0.5f, 0.35f), new[] { new Vector2(13f, 7.5f), new Vector2(15f, 6.5f), new Vector2(14.5f, 8f) });
-        SpawnGroup(animals, "cow",     7f, new Vector2(1.1f, 0.5f),  new[] { new Vector2(28f, 6.5f), new Vector2(31f, 8f) });
-        SpawnGroup(animals, "pig",     9f, new Vector2(0.9f, 0.4f),  new[] { new Vector2(8f, 7f), new Vector2(10.5f, 5f) });
-        SpawnGroup(animals, "sheep",   9f, new Vector2(0.9f, 0.4f),  new[] { new Vector2(24f, 17f), new Vector2(21f, 16f) });
+        foreach (var g in Groups) SpawnGroup(animals, g.sheet, g.pivotYPx, g.colliderSize, g.positions);
     }
 
     static PlayerController CreatePlayer(Vector2 position)

@@ -74,6 +74,7 @@ public class SimpleMapBuilder : MonoBehaviour
         BuildPond(27, 14, 8, 6);     // pond in the upper right
         BuildDecorations();
         BuildBoundaries();
+        if (!Application.isPlaying) GameSetup.CreatePreviews(generatedRoot.transform); // visible in Scene view
 
         // Everything generated is rebuilt on load, so keep it out of the saved scene file
         foreach (var t in generatedRoot.GetComponentsInChildren<Transform>(true))
