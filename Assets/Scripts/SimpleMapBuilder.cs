@@ -89,7 +89,9 @@ public class SimpleMapBuilder : MonoBehaviour
         var go = new GameObject(name);
         go.transform.SetParent(parent, false);
         var map = go.AddComponent<Tilemap>();
-        go.AddComponent<TilemapRenderer>().sortingOrder = order;
+        var renderer = go.AddComponent<TilemapRenderer>();
+        renderer.sortingOrder = order;
+        SpriteMaterial.Apply(renderer);
 
         if (solid)
         {
@@ -190,6 +192,7 @@ public class SimpleMapBuilder : MonoBehaviour
 
         var sr = go.AddComponent<SpriteRenderer>();
         sr.sprite = sprite;
+        SpriteMaterial.Apply(sr);
         sr.sortingOrder = 1000 - Mathf.RoundToInt(y * 10f); // lower on screen = drawn in front
 
         if (colliderSize.x > 0f)

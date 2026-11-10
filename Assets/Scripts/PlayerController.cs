@@ -31,6 +31,7 @@ public class PlayerController : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         sr = GetComponent<SpriteRenderer>();
         anim = GetComponent<SimpleAnimator>();
+        SpriteMaterial.Apply(sr);
 
         rb.gravityScale = 0f;
         rb.freezeRotation = true;
