@@ -73,6 +73,7 @@ public class SimpleMapBuilder : MonoBehaviour
         BuildPath(3, 9, 34, 3);      // x, y, w, h  (sand road across the map)
         BuildPond(27, 14, 8, 6);     // pond in the upper right
         BuildDecorations();
+        BuildBoundaries();
 
         // Everything generated is rebuilt on load, so keep it out of the saved scene file
         foreach (var t in generatedRoot.GetComponentsInChildren<Transform>(true))
@@ -127,6 +128,27 @@ public class SimpleMapBuilder : MonoBehaviour
         }
     }
 
+    // ---------- boundaries ----------
+
+    /// <summary>Invisible walls around the map so nobody walks off the edge.</summary>
+    void BuildBoundaries()
+    {
+        var root = new GameObject("Boundaries").transform;
+        root.SetParent(generatedRoot.transform, false);
+        AddWall(root, new Vector2(-0.5f, height * 0.5f), new Vector2(1f, height + 2f));
+        AddWall(root, new Vector2(width + 0.5f, height * 0.5f), new Vector2(1f, height + 2f));
+        AddWall(root, new Vector2(width * 0.5f, -0.5f), new Vector2(width + 2f, 1f));
+        AddWall(root, new Vector2(width * 0.5f, height + 0.5f), new Vector2(width + 2f, 1f));
+    }
+
+    static void AddWall(Transform parent, Vector2 center, Vector2 size)
+    {
+        var go = new GameObject("Wall");
+        go.transform.SetParent(parent, false);
+        go.transform.position = center;
+        go.AddComponent<BoxCollider2D>().size = size;
+    }
+
     // ---------- decorations ----------
 
     void BuildDecorations()
@@ -168,7 +190,7 @@ public class SimpleMapBuilder : MonoBehaviour
 
         var sr = go.AddComponent<SpriteRenderer>();
         sr.sprite = sprite;
-        sr.sortingOrder = 100 - Mathf.RoundToInt(y * 10f); // lower on screen = drawn in front
+        sr.sortingOrder = 1000 - Mathf.RoundToInt(y * 10f); // lower on screen = drawn in front
 
         if (colliderSize.x > 0f)
         {
