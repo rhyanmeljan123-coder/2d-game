@@ -6,7 +6,8 @@ using UnityEngine.InputSystem;
 /// Uses the Cute Fantasy Player.png sheet (6 columns x 10 rows of 32px frames).
 /// Has health: monsters hurt you, food and sleeping heal you, and if you pass out you wake up at the farm.
 /// </summary>
-[RequireComponent(typeof(Rigidbody2D), typeof(BoxCollider2D), typeof(SpriteRenderer), typeof(SimpleAnimator))]
+[RequireComponent(typeof(Rigidbody2D), typeof(SpriteRenderer), typeof(SimpleAnimator))]
+[RequireComponent(typeof(BoxCollider2D))]
 public class PlayerController : MonoBehaviour
 {
     public float walkSpeed = 3.5f;
