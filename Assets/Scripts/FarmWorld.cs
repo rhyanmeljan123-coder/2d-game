@@ -111,7 +111,8 @@ public static class FarmWorld
         upperWall.offset = new Vector2(0f, 2.25f);
 
         // The sprite pivot is bottom-centre. The doorway sits just above the bottom edge.
-        var houseDoor = houseBase + new Vector2(0f, 0.22f);
+        // Place the teleporter at ground level on the front doorway, not above the roof/wall.
+        var houseDoor = houseBase + new Vector2(0f, 0.02f);
 
         // Add a solid collision perimeter in world units (not scaled with the artwork).
         // Back and side sections block entry; two front sections leave the doorway open.
