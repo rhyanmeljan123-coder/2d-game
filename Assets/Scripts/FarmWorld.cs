@@ -203,9 +203,10 @@ public static class FarmWorld
 
         // Front door (leads back outside)
         Add(root, "interior door", DoorClosed, ix + w * 0.5f, iy + 0.05f, order: OnWall);
-        // Match the interior trigger to the middle of the visible door and spawn outside it.
-        AddTeleporter(root, new Vector2(ix + w * 0.5f, iy + 0.35f), new Vector2(0.28f, 0.40f),
-            new Vector2(MapOffsetForHouse + 6.5f, 16.95f));
+        // Make the exit trigger wide enough for the player and return them just
+        // outside the original red farmhouse entrance (not at the old replacement-house height).
+        AddTeleporter(root, new Vector2(ix + w * 0.5f, iy + 0.40f), new Vector2(0.9f, 0.75f),
+            new Vector2(MapOffsetForHouse + 6.5f, 11.75f));
 
         // On the back wall
         Add(root, "window", Window, ix + 4.6f, iy + 8.2f, order: OnWall);
