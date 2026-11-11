@@ -166,8 +166,10 @@ public class CropPlot : Interactable, ISaveable
     void Update()
     {
         if (state != State.Growing) return;
+        int previousStage = stage;
+        State previousState = state;
         AdvanceGrowth(Time.deltaTime);
-        if (state == State.Growing) ShowStage();
+        if (stage != previousStage || state != previousState) ShowStage();
     }
 
     void AdvanceGrowth(float seconds)
@@ -175,7 +177,11 @@ public class CropPlot : Interactable, ISaveable
         if (state != State.Growing || seconds <= 0f) return;
         timer += seconds;
         stage = Mathf.Clamp(Mathf.FloorToInt(timer / StageSeconds), 0, 4);
-        if (stage >= 4) state = State.Ripe;
+        if (stage >= 4)
+        {
+            state = State.Ripe;
+            watered = false;
+        }
     }
 
     void ShowStage()
