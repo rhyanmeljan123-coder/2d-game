@@ -234,8 +234,14 @@ public static class SaveSystem
             if (float.IsNaN(data.x) || float.IsInfinity(data.x) ||
                 float.IsNaN(data.y) || float.IsInfinity(data.y))
                 throw new InvalidDataException("Player position is invalid.");
+            if (data.health <= 0)
+                throw new InvalidDataException("Saved player health is not valid.");
+            if (data.slots == null || data.slots.Count != Inventory.Capacity)
+                throw new InvalidDataException("Inventory slot data is missing or incomplete.");
+            if (data.equipment == null || data.equipment.Count != 5)
+                throw new InvalidDataException("Equipment data is missing or incomplete.");
 
-            // Older or partially populated saves may omit the world-state list.
+            // Older saves may omit the world-state list; world objects can use their defaults.
             if (data.world == null) data.world = new List<WorldEntry>();
             return true;
         }
