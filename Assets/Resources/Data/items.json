@@ -539,6 +539,24 @@
    "iconCell": 16,
    "iconRow": 0,
    "iconCol": 3
+  },
+  {
+   "id": "WateringCan",
+   "name": "Watering can",
+   "category": "Tool",
+   "rarity": "Common",
+   "stack": 1,
+   "sell": 0,
+   "buy": 0,
+   "heal": 0,
+   "attack": 0,
+   "defense": 0,
+   "equip": "None",
+   "description": "A reusable farm tool. Hold it and refill it at a pond to water crops.",
+   "iconSheet": "Items/gear",
+   "iconCell": 16,
+   "iconRow": 0,
+   "iconCol": 4
   }
  ]
 }
