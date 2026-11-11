@@ -10,7 +10,7 @@ public class Pickup : MonoBehaviour, ISaveable
 
     public string CaptureState() => collected ? "gone" : null;
     public void RestoreState(string saved) { if (saved == "gone") { collected = true; Destroy(gameObject); } }
-    public void Register() => WorldState.Register("pickup", this);
+    public void Register() => WorldState.Register("pickup", this, transform.position);
 
     public void Init(Item what, int count)
     {
