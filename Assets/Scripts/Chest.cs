@@ -57,6 +57,7 @@ public class Chest : Interactable, ISaveable
         }
 
         opened = true;
+        ProgressionSystem.AddXP(ProgressionSystem.Skill.Exploration, kind == LootKind.GoldLocked ? 50 : kind == LootKind.SilverLocked ? 35 : 20);
         anim.Play(openFrames, 7f, false, true);
 
         var summary = new List<string>();
