@@ -80,6 +80,8 @@ public static class DungeonWorld
 
         foreach (var p in Slimes) Enemy.Create(root, Enemy.Kind.Slime, origin + p);
         foreach (var p in Skeletons) Enemy.Create(root, Enemy.Kind.Skeleton, origin + p);
+        // A powerful guardian protects the northern treasure chamber.
+        Enemy.Create(root, Enemy.Kind.Guardian, origin + new Vector2(16.5f, 17.5f));
 
         float ox = origin.x, oy = origin.y;
 
