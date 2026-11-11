@@ -127,7 +127,7 @@ public static class GameSetup
             box.offset = new Vector2(0f, colliderSize.y * 0.5f);
             go.AddComponent<SpriteRenderer>();
             go.AddComponent<SimpleAnimator>();
-            go.AddComponent<AnimalWander>().Init("Characters/" + sheet, pivotYPx);
+            go.AddComponent<AnimalWander>().Init("Characters/" + sheet, pivotYPx, "animal:" + sheet + "_" + (i + 1));
         }
     }
 }
