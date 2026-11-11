@@ -182,6 +182,7 @@ public class Enemy : MonoBehaviour
 
     void OnDied()
     {
+        ProgressionSystem.AddXP(ProgressionSystem.Skill.Combat, kind == Kind.Skeleton ? 35 : 25);
         dying = true;
         desiredVelocity = Vector2.zero;
         sr.color = Color.white;
