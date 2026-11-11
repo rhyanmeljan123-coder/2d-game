@@ -95,41 +95,14 @@ public static class FarmWorld
         AddPickup(root, Item.Coin, 35f, 20f, 4);
 
         // ================= MAP 2 (spring farm) =================
-        // Player farmhouse from the new Houses and Warehouses pack.
-        var houseSprite = WoodenHouse != null ? WoodenHouse : House;
-        // The pack sprite already contains its own door. Keep the house centered on the
-        // road entrance and use small side blockers so the middle doorway stays open.
-        var houseBase = new Vector2(ox + 6.5f, 17.5f);
-        var house = Add(root, "house", houseSprite, houseBase.x, houseBase.y);
-        house.transform.localScale = Vector3.one * 0.45f;
-
-        // A main upper-wall blocker is attached directly to the house sprite object.
-        // Its lower edge stays above the entrance so the doorway remains reachable.
-        var upperWall = house.AddComponent<BoxCollider2D>();
-        upperWall.isTrigger = false;
-        upperWall.size = new Vector2(2.7f, 1.1f);
-        upperWall.offset = new Vector2(0f, 2.25f);
-
-        // The sprite pivot is bottom-centre. The doorway sits just above the bottom edge.
-        // Place the teleporter at ground level on the front doorway, not above the roof/wall.
-        var houseDoor = houseBase + new Vector2(0f, 0.02f);
-
-        // Add a solid collision perimeter in world units (not scaled with the artwork).
-        // Back and side sections block entry; two front sections leave the doorway open.
-        AddHouseCollider(root, "House back collision", houseBase + new Vector2(0f, 1.02f), new Vector2(1.35f, 0.72f));
-        AddHouseCollider(root, "House left collision", houseBase + new Vector2(-0.62f, 0.55f), new Vector2(0.18f, 1.05f));
-        AddHouseCollider(root, "House right collision", houseBase + new Vector2(0.62f, 0.55f), new Vector2(0.18f, 1.05f));
-        AddHouseCollider(root, "House front left collision", houseBase + new Vector2(-0.40f, 0.16f), new Vector2(0.48f, 0.28f));
-        AddHouseCollider(root, "House front right collision", houseBase + new Vector2(0.40f, 0.16f), new Vector2(0.48f, 0.28f));
-
-        // Restore a visible door graphic over the doorway; the trigger itself is invisible.
-        var exteriorDoor = Add(root, "House entrance door", DoorClosed, houseDoor.x, houseDoor.y,
-            order: OrderFor(houseDoor.y) + 5);
-        exteriorDoor.transform.localScale = Vector3.one * 0.75f;
-
+        // Red farmhouse (original house and entrance setup).
+        var house = Add(root, "house", House, ox + 6.5f, 12.2f, solid: new Vector2(1.5f, 2.4f), solidOffset: new Vector2(-1.55f, 1.2f));
+        var rightWall = house.AddComponent<BoxCollider2D>(); // second wall box, leaving a doorway in the middle
+        rightWall.size = new Vector2(1.5f, 2.4f);
+        rightWall.offset = new Vector2(1.55f, 1.2f);
+        Add(root, "house door", DoorClosed, ox + 6.5f, 12.25f, order: OrderFor(12.2f) + 1);
         Vector2 interiorSpawn = new Vector2(interior.x + interiorWidth * 0.5f, interior.y + 2.6f);
-        // Trigger footprint is close to the visible door size.
-        AddTeleporter(root, houseDoor, new Vector2(0.32f, 0.42f), interiorSpawn);
+        AddTeleporter(root, new Vector2(ox + 6.5f, 12.7f), new Vector2(1.2f, 0.7f), interiorSpawn);
 
         // Birch trees
         float[,] birches =
