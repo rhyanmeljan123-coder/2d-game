@@ -71,7 +71,41 @@ public static class Inventory
 
     public static void EnsureWateringCan()
     {
-        if (Get(Item.WateringCan) <= 0) Add(Item.WateringCan, 1);
+        // Keep the watering can easy to select. If an older save has it in the
+        // backpack, move it to an empty hotbar slot without overwriting anything.
+        for (int i = 0; i < Capacity; i++)
+        {
+            if (slots[i].IsEmpty || slots[i].item != Item.WateringCan) continue;
+            if (i < HotbarSize) return;
+
+            for (int hotbar = 0; hotbar < HotbarSize; hotbar++)
+            {
+                if (!slots[hotbar].IsEmpty) continue;
+                slots[hotbar] = slots[i];
+                slots[i] = default;
+                Changed?.Invoke();
+                return;
+            }
+            return; // Hotbar is full; leave the existing can safely in the backpack.
+        }
+
+        // Prefer slot 6 (index 5), then any other empty hotbar slot.
+        if (slots[5].IsEmpty)
+        {
+            slots[5] = new ItemStack(Item.WateringCan, 1);
+            Changed?.Invoke();
+            return;
+        }
+        for (int i = 0; i < HotbarSize; i++)
+        {
+            if (!slots[i].IsEmpty) continue;
+            slots[i] = new ItemStack(Item.WateringCan, 1);
+            Changed?.Invoke();
+            return;
+        }
+
+        // If every hotbar slot is occupied, safely place it in the backpack.
+        Add(Item.WateringCan, 1);
     }
 
     public static int Get(Item item)
