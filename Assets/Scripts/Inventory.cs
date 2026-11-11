@@ -349,15 +349,36 @@ public static class Inventory
 
     static SlotData ToData(ItemStack s) => s.IsEmpty ? new SlotData { item = "", count = 0 } : new SlotData { item = s.item.ToString(), count = s.count };
 
-    static ItemStack FromData(SlotData d) =>
-        d != null && d.count > 0 && Enum.TryParse(d.item, out Item it) ? new ItemStack(it, d.count) : default;
+    static ItemStack FromData(SlotData d)
+    {
+        if (d == null || d.count <= 0 || !Enum.TryParse(d.item, out Item it) ||
+            !Enum.IsDefined(typeof(Item), it))
+            return default;
+
+        // A damaged or edited save must not create impossible oversized stacks.
+        int safeCount = Mathf.Min(d.count, Mathf.Max(1, Def(it).stack));
+        return new ItemStack(it, safeCount);
+    }
 
     public static void Restore(List<SlotData> slotData, List<SlotData> equipmentData, int hotbar)
     {
         Array.Clear(slots, 0, slots.Length);
         Array.Clear(equipment, 0, equipment.Length);
-        for (int i = 0; i < Capacity && slotData != null && i < slotData.Count; i++) slots[i] = FromData(slotData[i]);
-        for (int i = 0; i < equipment.Length && equipmentData != null && i < equipmentData.Count; i++) equipment[i] = FromData(equipmentData[i]);
-        SelectHotbar(hotbar);
+
+        for (int i = 0; i < Capacity && slotData != null && i < slotData.Count; i++)
+            slots[i] = FromData(slotData[i]);
+
+        // Equipment entries must match their destination slot. Ignore invalid or misplaced gear.
+        for (int i = 1; i < equipment.Length && equipmentData != null && i < equipmentData.Count; i++)
+        {
+            var stack = FromData(equipmentData[i]);
+            if (stack.IsEmpty) continue;
+
+            var def = Def(stack.item);
+            if (def.IsEquipment && def.equip == (EquipSlot)i)
+                equipment[i] = new ItemStack(stack.item, 1);
+        }
+
+        SelectHotbar(Mathf.Clamp(hotbar, 0, HotbarSize - 1));
     }
 }
