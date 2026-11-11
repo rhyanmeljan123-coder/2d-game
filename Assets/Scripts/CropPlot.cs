@@ -13,6 +13,7 @@ public class CropPlot : Interactable, ISaveable
     int crop;
     float timer;
     int stage;
+    bool watered;
     SpriteRenderer cropRenderer;
 
     static readonly List<CropPlot> all = new List<CropPlot>();
@@ -23,7 +24,12 @@ public class CropPlot : Interactable, ISaveable
     public static void GrowAll(float seconds)
     {
         foreach (var plot in all)
-            if (plot.state == State.Growing) plot.timer += seconds;
+        {
+            if (plot == null || plot.state != State.Growing) continue;
+            plot.AdvanceGrowth(seconds);
+            plot.watered = false; // sleeping starts a fresh watering cycle
+            plot.ShowStage();
+        }
     }
 
     // plants.png rows for each crop (Pumpkin, Potato, Carrot, Tomato); peas use the tall 2-row sprites
@@ -35,8 +41,9 @@ public class CropPlot : Interactable, ISaveable
         WorldState.Register("plot", this, transform.position);
     }
 
-    // ---- saving: "state|crop|timer" for anything that is not an empty plot
-    public string CaptureState() => state == State.Empty ? null : $"{(int)state}|{crop}|{timer.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+    // ---- saving: "state|crop|timer|watered". Three-part legacy crop saves remain supported.
+    public string CaptureState() => state == State.Empty ? null :
+        $"{(int)state}|{crop}|{timer.ToString(System.Globalization.CultureInfo.InvariantCulture)}|{(watered ? 1 : 0)}";
 
     public void RestoreState(string saved)
     {
@@ -46,12 +53,17 @@ public class CropPlot : Interactable, ISaveable
         crop = 0;
         timer = 0f;
         stage = 0;
-        if (cropRenderer != null) cropRenderer.sprite = null;
+        watered = false;
+        if (cropRenderer != null)
+        {
+            cropRenderer.sprite = null;
+            cropRenderer.color = Color.white;
+        }
 
         if (string.IsNullOrEmpty(saved)) return;
 
         var parts = saved.Split('|');
-        if (parts.Length != 3 ||
+        if ((parts.Length != 3 && parts.Length != 4) ||
             !int.TryParse(parts[0], out int savedState) ||
             !int.TryParse(parts[1], out int savedCrop) ||
             !float.TryParse(parts[2], System.Globalization.NumberStyles.Float,
@@ -65,8 +77,15 @@ public class CropPlot : Interactable, ISaveable
             return;
         }
 
+        if (parts.Length == 4 && parts[3] != "0" && parts[3] != "1")
+        {
+            Debug.LogWarning($"Ignored invalid watering data for crop plot {name}.");
+            return;
+        }
+
         crop = savedCrop;
         timer = savedTimer;
+        watered = parts.Length == 4 && parts[3] == "1";
         state = (State)savedState;
 
         if (state == State.Ripe || timer >= StageSeconds * 4f)
@@ -94,7 +113,9 @@ public class CropPlot : Interactable, ISaveable
                         ? $"Plant {Inventory.CropName(c)} [E]"
                         : $"No {Inventory.Name(Inventory.SeedFor(c)).ToLower()} (hold seeds on the hotbar)";
                 case State.Growing:
-                    return $"{Inventory.CropName(crop)} growing...";
+                    return watered
+                        ? $"{Inventory.CropName(crop)} growing (watered)"
+                        : $"Water {Inventory.CropName(crop)} [E]";
                 default:
                     return $"Harvest {Inventory.CropName(crop)} [E]";
             }
@@ -111,7 +132,15 @@ public class CropPlot : Interactable, ISaveable
             timer = 0f;
             stage = 0;
             state = State.Growing;
+            watered = false;
             ShowStage();
+        }
+        else if (state == State.Growing && !watered)
+        {
+            watered = true;
+            AdvanceGrowth(StageSeconds * 0.5f);
+            ShowStage();
+            GameHud.Toast($"{Inventory.CropName(crop)} watered: growth boosted!");
         }
         else if (state == State.Ripe)
         {
@@ -125,23 +154,35 @@ public class CropPlot : Interactable, ISaveable
             }
             GameHud.Toast(msg);
             state = State.Empty;
-            cropRenderer.sprite = null;
+            watered = false;
+            if (cropRenderer != null)
+            {
+                cropRenderer.sprite = null;
+                cropRenderer.color = Color.white;
+            }
         }
     }
 
     void Update()
     {
         if (state != State.Growing) return;
-        timer += Time.deltaTime;
-        int newStage = Mathf.Min(4, Mathf.FloorToInt(timer / StageSeconds));
-        if (newStage != stage) { stage = newStage; ShowStage(); }
+        AdvanceGrowth(Time.deltaTime);
+        if (state == State.Growing) ShowStage();
+    }
+
+    void AdvanceGrowth(float seconds)
+    {
+        if (state != State.Growing || seconds <= 0f) return;
+        timer += seconds;
+        stage = Mathf.Clamp(Mathf.FloorToInt(timer / StageSeconds), 0, 4);
         if (stage >= 4) state = State.Ripe;
     }
 
     void ShowStage()
     {
-        if (cropRenderer != null)
-            cropRenderer.sprite = GetSprite(crop, stage);
+        if (cropRenderer == null) return;
+        cropRenderer.sprite = GetSprite(crop, stage);
+        cropRenderer.color = watered ? new Color(0.78f, 0.92f, 1f) : Color.white;
     }
 
     public static Sprite GetSprite(int crop, int stage)
