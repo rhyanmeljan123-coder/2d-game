@@ -21,7 +21,7 @@ public class Chest : Interactable, ISaveable
         openFrames = open;
         kind = lootKind;
         anim.Play(closedFrames, 3f);
-        WorldState.Register("chest", this);
+        WorldState.Register("chest", this, transform.position);
     }
 
     public string CaptureState() => opened ? "open" : null;
