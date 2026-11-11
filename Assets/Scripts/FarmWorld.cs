@@ -99,34 +99,31 @@ public static class FarmWorld
         var houseSprite = WoodenHouse != null ? WoodenHouse : House;
         // The pack sprite already contains its own door. Keep the house centered on the
         // road entrance and use small side blockers so the middle doorway stays open.
-        var houseBase = new Vector2(ox + 6.5f, 12.2f);
+        var houseBase = new Vector2(ox + 6.5f, 17.5f);
+        var houseDoor = new Vector2(houseBase.x, houseBase.y - 3.4f);
         var house = Add(root, "house", houseSprite, houseBase.x, houseBase.y);
         house.transform.localScale = Vector3.one * 0.45f;
 
         var leftDoorSide = new GameObject("House left front wall");
         leftDoorSide.transform.SetParent(root, false);
-        leftDoorSide.transform.position = houseBase;
-        leftDoorSide.transform.localScale = house.transform.localScale;
+        leftDoorSide.transform.position = houseDoor + new Vector2(-0.65f, 0f);
         var leftBlock = leftDoorSide.AddComponent<BoxCollider2D>();
-        leftBlock.size = new Vector2(0.5f, 0.8f);
-        leftBlock.offset = new Vector2(-1f, 0.2f);
+        leftBlock.size = new Vector2(0.35f, 0.8f);
 
         var rightDoorSide = new GameObject("House right front wall");
         rightDoorSide.transform.SetParent(root, false);
-        rightDoorSide.transform.position = houseBase;
-        rightDoorSide.transform.localScale = house.transform.localScale;
+        rightDoorSide.transform.position = houseDoor + new Vector2(0.65f, 0f);
         var rightBlock = rightDoorSide.AddComponent<BoxCollider2D>();
-        rightBlock.size = new Vector2(0.5f, 0.8f);
-        rightBlock.offset = new Vector2(1f, 0.2f);
+        rightBlock.size = new Vector2(0.35f, 0.8f);
 
         Vector2 interiorSpawn = new Vector2(interior.x + interiorWidth * 0.5f, interior.y + 2.6f);
-        // Doorway trigger is centered over the visible door near the bottom of the house.
-        AddTeleporter(root, new Vector2(houseBase.x, houseBase.y + 0.18f), new Vector2(0.8f, 0.7f), interiorSpawn);
+        // Trigger is centered on the door drawn near the bottom of the house sprite.
+        AddTeleporter(root, houseDoor, new Vector2(0.9f, 0.9f), interiorSpawn);
 
         // Birch trees
         float[,] birches =
         {
-            { 2f, 19.5f }, { 10f, 20.8f }, { 27.5f, 21f }, { 33.5f, 21.5f }, { 38f, 17.5f }, { 37.5f, 7.5f },
+            { 27.5f, 21f }, { 33.5f, 21.5f }, { 38f, 17.5f }, { 37.5f, 7.5f },
             { 21f, 6f }, { 3.5f, 5f }, { 16f, 2.8f }, { 28f, 2.5f }, { 9f, 7f },
         };
         for (int i = 0; i < birches.GetLength(0); i++)
@@ -152,7 +149,7 @@ public static class FarmWorld
         Add(root, "flowers", Flowers, ox + 16f, 7f);
         Add(root, "tulips", Tulips, ox + 30f, 7f);
         Add(root, "clover", Clover, ox + 34f, 8f);
-        Add(root, "flowers", Flowers, ox + 9f, 21f);
+        Add(root, "flowers", Flowers, ox + 12f, 13.5f);
         Add(root, "clover", Clover, ox + 24f, 22f);
         Add(root, "tulips", Tulips, ox + 36f, 13f);
         Add(root, "flowers", Flowers, ox + 12f, 3f);
@@ -179,8 +176,8 @@ public static class FarmWorld
         AddPickup(root, Item.Peas, ox + 36f, 12f);
         AddPickup(root, Item.CarrotSeeds, ox + 14f, 5f);
         AddPickup(root, Item.TomatoSeeds, ox + 28f, 3.5f);
-        AddPickup(root, Item.Milk, ox + 6f, 20f);
-        AddPickup(root, Item.Flower, ox + 2f, 21f);
+        AddPickup(root, Item.Milk, ox + 11f, 6f);
+        AddPickup(root, Item.Flower, ox + 12f, 4f);
         AddPickup(root, Item.Herb, ox + 33f, 10f);
         AddPickup(root, Item.PotatoSeeds, ox + 20f, 8f);
         Props.Box(root, ox + 12f, 5.5f, 2);
@@ -224,7 +221,7 @@ public static class FarmWorld
         Add(root, "interior door", DoorClosed, ix + w * 0.5f, iy + 0.05f, order: OnWall);
         // Match the interior trigger to the middle of the visible door and spawn outside it.
         AddTeleporter(root, new Vector2(ix + w * 0.5f, iy + 0.9f), new Vector2(1.0f, 0.8f),
-            new Vector2(MapOffsetForHouse + 6.5f, 11.5f));
+            new Vector2(MapOffsetForHouse + 6.5f, 12.6f));
 
         // On the back wall
         Add(root, "window", Window, ix + 4.6f, iy + 8.2f, order: OnWall);
