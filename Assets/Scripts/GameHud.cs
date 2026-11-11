@@ -139,7 +139,7 @@ public class GameHud : MonoBehaviour
 
         // --- controls ---
         GUI.Label(new Rect(W - 440f, 6f, 432f, 56f),
-            "WASD / arrows: move   Shift: run   Space / J / click: sword\nE: use / water / plant / harvest / open   1-8 or wheel: hotbar   F: eat to heal\nI: inventory   F5: save   F9: load   Watch out for traps!", hint);
+            "WASD / arrows: move   Shift: run   Space / J / click: sword\nE: use / refill / water / plant / harvest / open   1-8 or wheel: hotbar   F: eat to heal\nI: inventory   F5: save   F9: load   Watch out for traps!", hint);
 
         // --- interaction prompt ---
         if (!UiOpen && !string.IsNullOrEmpty(PlayerInteractor.CurrentPrompt))
