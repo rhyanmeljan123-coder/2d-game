@@ -132,6 +132,7 @@ public static class GameSetup
             go.AddComponent<SpriteRenderer>();
             go.AddComponent<SimpleAnimator>();
             go.AddComponent<AnimalWander>().Init("Characters/" + sheet, pivotYPx, "animal:" + sheet + "_" + (i + 1));
+            go.AddComponent<AnimalCare>().Init(sheet, sheet + "_" + (i + 1));
         }
     }
 }
