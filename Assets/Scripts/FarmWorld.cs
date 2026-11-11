@@ -103,6 +103,13 @@ public static class FarmWorld
         var house = Add(root, "house", houseSprite, houseBase.x, houseBase.y);
         house.transform.localScale = Vector3.one * 0.45f;
 
+        // A main upper-wall blocker is attached directly to the house sprite object.
+        // Its lower edge stays above the entrance so the doorway remains reachable.
+        var upperWall = house.AddComponent<BoxCollider2D>();
+        upperWall.isTrigger = false;
+        upperWall.size = new Vector2(2.7f, 1.1f);
+        upperWall.offset = new Vector2(0f, 2.25f);
+
         // The sprite pivot is bottom-centre. The doorway sits just above the bottom edge.
         var houseDoor = houseBase + new Vector2(0f, 0.22f);
 
@@ -116,7 +123,7 @@ public static class FarmWorld
 
         // Restore a visible door graphic over the doorway; the trigger itself is invisible.
         var exteriorDoor = Add(root, "House entrance door", DoorClosed, houseDoor.x, houseDoor.y,
-            order: OrderFor(houseDoor.y) - 1);
+            order: OrderFor(houseDoor.y) + 5);
         exteriorDoor.transform.localScale = Vector3.one * 0.75f;
 
         Vector2 interiorSpawn = new Vector2(interior.x + interiorWidth * 0.5f, interior.y + 2.6f);
@@ -284,6 +291,8 @@ public static class FarmWorld
         go.transform.SetParent(parent, false);
         go.transform.position = position;
         go.layer = LayerMask.NameToLayer("Default");
+        var body = go.AddComponent<Rigidbody2D>();
+        body.bodyType = RigidbodyType2D.Static;
         var box = go.AddComponent<BoxCollider2D>();
         box.isTrigger = false;
         box.size = size;
