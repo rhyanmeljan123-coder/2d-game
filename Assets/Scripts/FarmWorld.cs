@@ -97,16 +97,31 @@ public static class FarmWorld
         // ================= MAP 2 (spring farm) =================
         // Player farmhouse from the new Houses and Warehouses pack.
         var houseSprite = WoodenHouse != null ? WoodenHouse : House;
-        var house = Add(root, "house", houseSprite, ox + 6.5f, 12.2f,
-            solid: new Vector2(4.4f, 1.2f), solidOffset: new Vector2(-2.2f, 0.6f));
-        // Match the farm's 16-pixel tile scale instead of letting the pack artwork dominate the map.
+        // The pack sprite already contains its own door. Keep the house centered on the
+        // road entrance and use small side blockers so the middle doorway stays open.
+        var houseBase = new Vector2(ox + 6.5f, 12.2f);
+        var house = Add(root, "house", houseSprite, houseBase.x, houseBase.y);
         house.transform.localScale = Vector3.one * 0.45f;
-        var rightWall = house.AddComponent<BoxCollider2D>(); // second short wall box, leaving the doorway open
-        rightWall.size = new Vector2(4.4f, 1.2f);
-        rightWall.offset = new Vector2(2.2f, 0.6f);
-        Add(root, "house door", DoorClosed, ox + 6.5f, 12.25f, order: OrderFor(12.2f) + 1);
+
+        var leftDoorSide = new GameObject("House left front wall");
+        leftDoorSide.transform.SetParent(root, false);
+        leftDoorSide.transform.position = houseBase;
+        leftDoorSide.transform.localScale = house.transform.localScale;
+        var leftBlock = leftDoorSide.AddComponent<BoxCollider2D>();
+        leftBlock.size = new Vector2(0.5f, 0.8f);
+        leftBlock.offset = new Vector2(-1f, 0.2f);
+
+        var rightDoorSide = new GameObject("House right front wall");
+        rightDoorSide.transform.SetParent(root, false);
+        rightDoorSide.transform.position = houseBase;
+        rightDoorSide.transform.localScale = house.transform.localScale;
+        var rightBlock = rightDoorSide.AddComponent<BoxCollider2D>();
+        rightBlock.size = new Vector2(0.5f, 0.8f);
+        rightBlock.offset = new Vector2(1f, 0.2f);
+
         Vector2 interiorSpawn = new Vector2(interior.x + interiorWidth * 0.5f, interior.y + 2.6f);
-        AddTeleporter(root, new Vector2(ox + 6.5f, 12.7f), new Vector2(1.2f, 0.7f), interiorSpawn);
+        // Doorway trigger is centered over the visible door near the bottom of the house.
+        AddTeleporter(root, new Vector2(houseBase.x, houseBase.y + 0.18f), new Vector2(0.8f, 0.7f), interiorSpawn);
 
         // Birch trees
         float[,] birches =
@@ -207,7 +222,9 @@ public static class FarmWorld
 
         // Front door (leads back outside)
         Add(root, "interior door", DoorClosed, ix + w * 0.5f, iy + 0.05f, order: OnWall);
-        AddTeleporter(root, new Vector2(ix + w * 0.5f, iy + 1.4f), new Vector2(1.8f, 0.6f), new Vector2(MapOffsetForHouse + 6.5f, 11.0f));
+        // Match the interior trigger to the middle of the visible door and spawn outside it.
+        AddTeleporter(root, new Vector2(ix + w * 0.5f, iy + 0.9f), new Vector2(1.0f, 0.8f),
+            new Vector2(MapOffsetForHouse + 6.5f, 11.5f));
 
         // On the back wall
         Add(root, "window", Window, ix + 4.6f, iy + 8.2f, order: OnWall);
