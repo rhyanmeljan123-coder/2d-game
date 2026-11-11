@@ -157,7 +157,13 @@ public class CropPlot : Interactable, ISaveable
         }
         else if (state == State.Ripe)
         {
+            ProgressionSystem.AddXP(ProgressionSystem.Skill.Farming, 15);
             Inventory.Add(Inventory.CropItem(crop), 1);
+            if (ProgressionSystem.BonusHarvestChance > 0f && Random.value < ProgressionSystem.BonusHarvestChance)
+            {
+                Inventory.Add(Inventory.CropItem(crop), 1);
+                GameHud.Toast("Farming skill bonus: +1 extra crop!");
+            }
             string msg = $"+1 {Inventory.CropName(crop)}";
             if (Random.value < 0.6f)
             {
