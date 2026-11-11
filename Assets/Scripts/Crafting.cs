@@ -49,14 +49,30 @@ public static class Recipes
                 action = () => Craft(recipe),
             });
         }
-        list.Add(new MenuEntry { icon = Item.Wood, title = "Wood fence", detail = "3 wood   |   placed in front of you", button = "Build", enabled = Inventory.Get(Item.Wood) >= 3, action = () => BuildableSystem.BuildFence() });
-        list.Add(new MenuEntry { icon = Item.Wood, title = "Storage crate", detail = "5 wood + 2 stone   |   placed in front of you", button = "Build", enabled = Inventory.Get(Item.Wood) >= 5 && Inventory.Get(Item.Stone) >= 2, action = () => BuildableSystem.BuildCrate() });
+        list.Add(new MenuEntry { icon = Item.Wood, title = "Wood fence kit", detail = "3 wood   |   added to inventory", button = "Craft", enabled = Inventory.Get(Item.Wood) >= 3 && Inventory.CanAdd(Item.FenceKit, 1), action = () => CraftBuild(Item.FenceKit, 3, 0) });
+        list.Add(new MenuEntry { icon = Item.Wood, title = "Storage crate kit", detail = "5 wood + 2 stone   |   added to inventory", button = "Craft", enabled = Inventory.Get(Item.Wood) >= 5 && Inventory.Get(Item.Stone) >= 2 && Inventory.CanAdd(Item.StorageCrateKit, 1), action = () => CraftBuild(Item.StorageCrateKit, 5, 2) });
         return list;
     }
 
     public static bool CanCraft(Recipe r)
     {
         foreach (var n in r.needs) if (Inventory.Get(n.item) < n.count) return false;
+        return true;
+    }
+
+    static bool CraftBuild(Item result, int wood, int stone)
+    {
+        if (!Inventory.CanAdd(result, 1)) { GameHud.Toast("Your inventory is full."); return false; }
+        if (Inventory.Get(Item.Wood) < wood || Inventory.Get(Item.Stone) < stone)
+        { GameHud.Toast("You are missing building materials."); return false; }
+        if (!Inventory.TryRemove(Item.Wood, wood)) return false;
+        if (stone > 0 && !Inventory.TryRemove(Item.Stone, stone))
+        {
+            Inventory.Add(Item.Wood, wood);
+            return false;
+        }
+        Inventory.Add(result, 1);
+        GameHud.Toast($"Crafted {Inventory.Name(result)}. Select it in your hotbar and press E to place it.");
         return true;
     }
 
