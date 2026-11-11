@@ -90,6 +90,7 @@ public class SimpleMapBuilder : MonoBehaviour
         BuildPond(27, 14, 8, 6);     // pond in the upper right
         BuildDecorations();
         BuildSpringMap(width);                          // second map, right beside the first
+        BuildWaterSources();
         BuildInterior();
         BuildDungeon();
         FarmWorld.Build(generatedRoot.transform, width, InteriorOrigin, interiorWidth, interiorHeight, DungeonOrigin); // objects, items, furniture, dungeon
@@ -157,6 +158,26 @@ public class SimpleMapBuilder : MonoBehaviour
                 map.SetTile(new Vector3Int(x, y, 0), GetTile(prefix + "_" + key));
             }
         }
+    }
+
+    // ---------- water refill points ----------
+
+    void BuildWaterSources()
+    {
+        // Refill points sit on the walkable bank, just outside each pond's solid water tiles.
+        AddWaterSource(new Vector2(26.4f, 16.5f));
+        AddWaterSource(new Vector2(width + 28.4f, 16.5f));
+    }
+
+    void AddWaterSource(Vector2 position)
+    {
+        var source = new GameObject("Pond Water Source");
+        source.transform.SetParent(generatedRoot.transform, false);
+        source.transform.position = position;
+        var trigger = source.AddComponent<BoxCollider2D>();
+        trigger.isTrigger = true;
+        trigger.size = new Vector2(0.9f, 0.9f);
+        source.AddComponent<WaterSource>();
     }
 
     // ---------- second map (spring farm) ----------
