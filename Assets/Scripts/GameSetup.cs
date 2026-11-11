@@ -58,6 +58,10 @@ public static class GameSetup
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Spawn()
     {
+        // Make sure the watering can is available even when starting a new game
+        // or loading an older inventory that predates the watering-can item.
+        Inventory.EnsureWateringCan();
+
         var map = Object.FindFirstObjectByType<SimpleMapBuilder>();
         var mapSize = map != null ? new Vector2(map.TotalWidth, map.height) : new Vector2(80f, 24f);
 
