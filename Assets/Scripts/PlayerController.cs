@@ -173,7 +173,7 @@ public class PlayerController : MonoBehaviour
             var enemy = hit.GetComponentInParent<Enemy>();
             if (enemy == null) continue;
             var hp = enemy.GetComponent<Health>();
-            if (hp != null) hp.TakeDamage(swordDamage + Inventory.EquipmentAttack + (StrengthBoostLeft > 0f ? 2 : 0), transform.position);
+            if (hp != null) hp.TakeDamage(swordDamage + Inventory.EquipmentAttack + ProgressionSystem.CombatDamageBonus + (StrengthBoostLeft > 0f ? 2 : 0), transform.position);
         }
     }
 
