@@ -15,6 +15,7 @@ using UnityEngine.InputSystem;
     public bool hasWateringCanState;
     public int wateringCanCharges;
     public List<BuildableSystem.PlacedData> buildables = new List<BuildableSystem.PlacedData>();
+    public List<ProgressionSystem.SkillSave> progression = new List<ProgressionSystem.SkillSave>();
     public float x, y;
     public List<WorldEntry> world = new List<WorldEntry>();
 }
@@ -51,6 +52,7 @@ public static class SaveSystem
             hasWateringCanState = true,
             wateringCanCharges = WateringCanSystem.Charges,
             buildables = BuildableSystem.Capture(),
+            progression = ProgressionSystem.Capture(),
             x = player.transform.position.x,
             y = player.transform.position.y,
         };
@@ -187,6 +189,7 @@ public static class SaveSystem
             }
         }
 
+        ProgressionSystem.Restore(data.progression);
         Inventory.Restore(data.slots, data.equipment, data.hotbar);
         Inventory.EnsureWateringCan(); // older saves predate the watering-can item
         WateringCanSystem.Restore(data.hasWateringCanState ? data.wateringCanCharges : WateringCanSystem.MaxCharges);
