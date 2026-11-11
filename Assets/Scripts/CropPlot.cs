@@ -32,7 +32,7 @@ public class CropPlot : Interactable, ISaveable
     public void Init(SpriteRenderer cropSr)
     {
         cropRenderer = cropSr;
-        WorldState.Register("plot", this);
+        WorldState.Register("plot", this, transform.position);
     }
 
     // ---- saving: "state|crop|timer" for anything that is not an empty plot
