@@ -84,6 +84,7 @@ public class AnimalCare : Interactable, ISaveable
         if (productReady)
         {
             Inventory.Add(productItem, 1);
+            ProgressionSystem.AddXP(ProgressionSystem.Skill.AnimalCare, 10);
             productReady = false;
             GameHud.Toast("Collected 1 " + Inventory.Name(productItem).ToLower() + " from your " + species + "!");
             return;
@@ -94,6 +95,7 @@ public class AnimalCare : Interactable, ISaveable
         {
             if (!Inventory.TryRemove(feedItem, 1)) return;
             fedToday = true;
+            ProgressionSystem.AddXP(ProgressionSystem.Skill.AnimalCare, 10);
             GameHud.Toast("You fed your " + species + ". It may produce something after you sleep.");
             return;
         }
@@ -101,6 +103,7 @@ public class AnimalCare : Interactable, ISaveable
         if (!pettedToday)
         {
             pettedToday = true;
+            ProgressionSystem.AddXP(ProgressionSystem.Skill.AnimalCare, 5);
             GameHud.Toast("You petted your " + species + ". It looks happy!");
             return;
         }
