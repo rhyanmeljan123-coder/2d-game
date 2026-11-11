@@ -37,7 +37,7 @@ public class GameHud : MonoBehaviour
     static bool menuShowCoins;
     public static bool MenuOpen => menuOpen;
     /// <summary>True while any full-screen UI (list menu or inventory) is open: the player stands still.</summary>
-    public static bool UiOpen => menuOpen || InventoryScreen.IsOpen;
+    public static bool UiOpen => menuOpen || InventoryScreen.IsOpen || ProgressionSystem.PanelOpen;
     const int VisibleRows = 7;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -82,9 +82,21 @@ public class GameHud : MonoBehaviour
 
     void Update()
     {
-        if (!menuOpen) return;
         var kb = Keyboard.current;
         if (kb == null) return;
+
+        if (!menuOpen && !InventoryScreen.IsOpen && kb.kKey.wasPressedThisFrame)
+        {
+            ProgressionSystem.TogglePanel();
+            return;
+        }
+        if (ProgressionSystem.PanelOpen)
+        {
+            if (kb.escapeKey.wasPressedThisFrame || kb.kKey.wasPressedThisFrame)
+                ProgressionSystem.TogglePanel();
+            return;
+        }
+        if (!menuOpen) return;
 
         if (kb.escapeKey.wasPressedThisFrame || kb.tabKey.wasPressedThisFrame ||
             (kb.eKey.wasPressedThisFrame && Time.frameCount != menuOpenedFrame))
@@ -139,7 +151,7 @@ public class GameHud : MonoBehaviour
 
         // --- controls ---
         GUI.Label(new Rect(W - 440f, 6f, 432f, 56f),
-            "WASD / arrows: move   Shift: run   Space / J / click: sword\nE: use / refill / water / plant / harvest / chop / mine / open   1-8 or wheel: hotbar   F: eat to heal\nI: inventory   F5: save   F9: load   Watch out for traps!", hint);
+            "WASD / arrows: move   Shift: run   Space / J / click: sword\nE: interact   1-8 or wheel: hotbar   F: eat to heal   I: inventory   K: skills\nF5: save   F9: load   Watch out for traps!", hint);
 
         // --- interaction prompt ---
         if (!UiOpen && !string.IsNullOrEmpty(PlayerInteractor.CurrentPrompt))
@@ -164,6 +176,7 @@ public class GameHud : MonoBehaviour
         GUI.color = Color.white;
 
         if (menuOpen) DrawMenu(W, H, white);
+        if (ProgressionSystem.PanelOpen) DrawProgression(W, H, white);
 
         // --- fade to black (doors, sleeping) ---
         if (fadeAlpha > 0f)
@@ -285,6 +298,42 @@ public class GameHud : MonoBehaviour
         }
         TinyWonderUI.DrawIcon(new Rect(win.x + 18f, win.yMax - 29f, 16f, 16f), 2, 0);
         GUI.Label(new Rect(win.x + 38f, win.yMax - 30f, win.width - 52f, 22f), "W/S or arrows: choose     Enter / Space / click: confirm     Esc / E: close", hint2());
+    }
+
+
+    void DrawProgression(float W, float H, Texture2D white)
+    {
+        GUI.color = new Color(0f, 0f, 0f, 0.62f);
+        GUI.DrawTexture(new Rect(0f, 0f, W, H), white);
+        GUI.color = Color.white;
+
+        float w = 540f, rowH = 48f, h = 86f + rowH * ProgressionSystem.SkillCount + 34f;
+        var win = new Rect(W * 0.5f - w * 0.5f, H * 0.5f - h * 0.5f, w, h);
+        TinyWonderUI.DrawPanel(win);
+        GUI.Label(new Rect(win.x, win.y + 12f, win.width, 28f), "Player Skills", title);
+        GUI.Label(new Rect(win.x, win.y + 42f, win.width, 20f),
+            $"Level {ProgressionSystem.PlayerLevel}   •   Total XP {ProgressionSystem.TotalXP}", hint2());
+
+        for (int i = 0; i < ProgressionSystem.SkillCount; i++)
+        {
+            var skill = (ProgressionSystem.Skill)i;
+            int level = ProgressionSystem.Level(skill);
+            int xp = ProgressionSystem.XPIntoLevel(skill);
+            int needed = ProgressionSystem.XPForNextLevel(skill);
+            float y = win.y + 70f + i * rowH;
+            GUI.Label(new Rect(win.x + 22f, y, 210f, 20f), ProgressionSystem.SkillName(skill), rowName);
+            GUI.Label(new Rect(win.x + 230f, y, 90f, 20f), "Lv. " + level, rowInfo);
+            GUI.Label(new Rect(win.x + 330f, y, 185f, 20f), level >= ProgressionSystem.MaxSkillLevel ? "MAX LEVEL" : xp + " / " + needed + " XP", rowInfo);
+            var barRect = new Rect(win.x + 22f, y + 23f, win.width - 44f, 9f);
+            GUI.color = new Color(0f, 0f, 0f, 0.35f);
+            GUI.DrawTexture(barRect, white);
+            GUI.color = new Color(0.28f, 0.78f, 0.66f, 1f);
+            float fraction = level >= ProgressionSystem.MaxSkillLevel ? 1f : Mathf.Clamp01(xp / (float)Mathf.Max(1, needed));
+            GUI.DrawTexture(new Rect(barRect.x, barRect.y, barRect.width * fraction, barRect.height), white);
+            GUI.color = Color.white;
+        }
+        GUI.Label(new Rect(win.x, win.yMax - 28f, win.width, 20f),
+            "Gain XP by playing. K / Esc: close", hint2());
     }
 
     GUIStyle hintStyle;
