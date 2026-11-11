@@ -252,7 +252,11 @@ public class SimpleMapBuilder : MonoBehaviour
             bool alt = x % 2 == 0;
             interiorWalls.SetTile(new Vector3Int(o.x + x, o.y + h - 1, 0), GetTile(alt ? "Interior/in_wall_a" : "Interior/in_wall_b"));
             interiorWalls.SetTile(new Vector3Int(o.x + x, o.y + h - 2, 0), GetTile(alt ? "Interior/in_wall_c" : "Interior/in_wall_d"));
-            interiorWalls.SetTile(new Vector3Int(o.x + x, o.y, 0), GetTile(alt ? "Interior/in_wall_a" : "Interior/in_wall_b"));
+            // Leave a two-tile-wide opening in the bottom wall for the farmhouse exit.
+            // The door trigger is centered at x = w / 2; without this gap the solid
+            // TilemapCollider2D blocks the player before they can reach the teleporter.
+            if (x != w / 2 - 1 && x != w / 2)
+                interiorWalls.SetTile(new Vector3Int(o.x + x, o.y, 0), GetTile(alt ? "Interior/in_wall_a" : "Interior/in_wall_b"));
         }
         for (int y = 1; y < h - 2; y++)
         {
