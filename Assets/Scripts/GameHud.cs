@@ -251,7 +251,7 @@ public class GameHud : MonoBehaviour
             var e = entries[i];
             var row = new Rect(win.x + 14f, win.y + 70f + v * rowH, win.width - 28f, rowH - 6f);
 
-            GUI.color = i == menuSelected ? new Color(1f, 0.85f, 0.3f, 0.35f) : new Color(1f, 1f, 1f, 0.07f);
+            GUI.color = i == menuSelected ? new Color(0.78f, 0.43f, 0.25f, 0.55f) : new Color(0.48f, 0.30f, 0.22f, 0.35f);
             GUI.DrawTexture(row, white);
             GUI.color = Color.white;
 
