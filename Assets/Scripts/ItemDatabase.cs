@@ -15,6 +15,7 @@ public class ItemDef
     public int stack = 99, sell, buy, heal, attack, defense;
     public EquipSlot equip;
     public string iconSheet;
+    public string iconResource;
     public int iconCell = 16, iconRow, iconCol;
 
     public bool IsEdible => heal > 0;
@@ -26,6 +27,11 @@ public class ItemDef
     {
         get
         {
+            if (icon == null && !string.IsNullOrEmpty(iconResource))
+            {
+                var sprites = Resources.LoadAll<Sprite>(iconResource);
+                if (sprites.Length > 0) icon = sprites[0];
+            }
             if (icon == null && !string.IsNullOrEmpty(iconSheet))
             {
                 var sheet = SpriteSheet.Slice(iconSheet, iconCell, new Vector2(iconCell * 0.5f, iconCell * 0.5f));
@@ -38,7 +44,7 @@ public class ItemDef
 
 [Serializable] class ItemJson
 {
-    public string id, name, category, rarity, equip, description, iconSheet;
+    public string id, name, category, rarity, equip, description, iconSheet, iconResource;
     public int stack, sell, buy, heal, attack, defense, iconCell, iconRow, iconCol;
 }
 [Serializable] class ItemListJson { public ItemJson[] items; }
@@ -85,6 +91,7 @@ public static class ItemDatabase
             d.stack = j.stack > 0 ? j.stack : 99;
             d.sell = j.sell; d.buy = j.buy; d.heal = j.heal; d.attack = j.attack; d.defense = j.defense;
             d.iconSheet = j.iconSheet;
+            d.iconResource = j.iconResource;
             d.iconCell = j.iconCell > 0 ? j.iconCell : 16;
             d.iconRow = j.iconRow; d.iconCol = j.iconCol;
         }
