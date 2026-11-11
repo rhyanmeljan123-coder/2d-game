@@ -85,7 +85,7 @@ public class CropPlot : Interactable, ISaveable
 
         crop = savedCrop;
         timer = savedTimer;
-        watered = parts.Length == 4 && parts[3] == "1";
+        watered = parts.Length == 4 && parts[3] == "1" && savedState == (int)State.Growing;
         state = (State)savedState;
 
         if (state == State.Ripe || timer >= StageSeconds * 4f)
