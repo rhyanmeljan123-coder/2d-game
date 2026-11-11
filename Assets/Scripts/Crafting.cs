@@ -73,7 +73,7 @@ public static class Recipes
 /// <summary>A workbench: press E to open the crafting menu.</summary>
 public class CraftingTable : Interactable
 {
-    public override string Prompt => "Craft food & potions [E]";
+    public override string Prompt => "Craft food, potions & buildings [E]";
     public override void Interact() =>
-        GameHud.OpenMenu("Crafting table", "Turn crops and dungeon drops into food that heals you", Recipes.BuildMenu);
+        GameHud.OpenMenu("Crafting table", "Craft meals, potions, fences and storage crates from gathered materials", Recipes.BuildMenu);
 }
