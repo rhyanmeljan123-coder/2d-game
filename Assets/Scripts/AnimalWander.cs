@@ -1,3 +1,4 @@
+using System.Globalization;
 using UnityEngine;
 
 /// <summary>
@@ -5,7 +6,7 @@ using UnityEngine;
 /// Animal sheets are 64x64: a 2x2 grid of 32px frames. Top row = idle, bottom row = walking.
 /// </summary>
 [RequireComponent(typeof(Rigidbody2D), typeof(SpriteRenderer), typeof(SimpleAnimator))]
-public class AnimalWander : MonoBehaviour
+public class AnimalWander : MonoBehaviour, ISaveable
 {
     public float speed = 0.9f;
     public Vector2 idleTime = new Vector2(1.5f, 4f);
@@ -20,8 +21,9 @@ public class AnimalWander : MonoBehaviour
     Vector2 dir;
     bool walking;
     float timer;
+    string saveId;
 
-    public void Init(string sheetPath, float pivotYPx)
+    public void Init(string sheetPath, float pivotYPx, string stableId)
     {
         rb = GetComponent<Rigidbody2D>();
         sr = GetComponent<SpriteRenderer>();
@@ -31,6 +33,8 @@ public class AnimalWander : MonoBehaviour
         rb.gravityScale = 0f;
         rb.freezeRotation = true;
         rb.interpolation = RigidbodyInterpolation2D.Interpolate;
+        saveId = stableId;
+        RegisterSaveable();
 
         var sheet = SpriteSheet.Slice(sheetPath, 32, new Vector2(16, pivotYPx));
         idle = SpriteSheet.Row(sheet, 0, 0, 2);
@@ -39,6 +43,42 @@ public class AnimalWander : MonoBehaviour
         speed *= Random.Range(0.85f, 1.15f);
         StartIdle();
         timer = Random.Range(0f, idleTime.y); // desync the animals
+    }
+
+    /// <summary>Re-registers this animal after the generated world registry is cleared.</summary>
+    public void RegisterSaveable()
+    {
+        if (!string.IsNullOrEmpty(saveId)) WorldState.RegisterFixed(saveId, this);
+    }
+
+    public string CaptureState()
+    {
+        var p = transform.position;
+        return p.x.ToString("R", CultureInfo.InvariantCulture) + "|" +
+               p.y.ToString("R", CultureInfo.InvariantCulture) + "|" +
+               (sr != null && sr.flipX ? "1" : "0");
+    }
+
+    public void RestoreState(string saved)
+    {
+        if (string.IsNullOrEmpty(saved)) return;
+        var parts = saved.Split('|');
+        if (parts.Length < 2 ||
+            !float.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out float x) ||
+            !float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out float y))
+        {
+            Debug.LogWarning("AnimalWander: invalid saved state for " + saveId);
+            return;
+        }
+
+        var position = new Vector2(x, y);
+        transform.position = position;
+        if (rb != null)
+        {
+            rb.position = position;
+            rb.linearVelocity = Vector2.zero;
+        }
+        if (parts.Length >= 3 && sr != null) sr.flipX = parts[2] == "1";
     }
 
     void Update()
