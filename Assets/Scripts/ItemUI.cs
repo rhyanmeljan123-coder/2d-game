@@ -31,16 +31,7 @@ public static class ItemUI
     public static void Slot(Rect r, ItemStack stack, bool selected, string key)
     {
         EnsureStyles();
-        var white = Texture2D.whiteTexture;
-
-        Color frame = new Color(1f, 1f, 1f, 0.15f);
-        if (!stack.IsEmpty) frame = ItemDatabase.RarityColor(Inventory.Def(stack.item).rarity) * new Color(1f, 1f, 1f, 0.8f);
-        if (selected) frame = new Color(1f, 0.85f, 0.2f, 1f);
-        GUI.color = frame;
-        GUI.DrawTexture(r, white);
-        GUI.color = new Color(0.12f, 0.1f, 0.1f, 0.9f);
-        GUI.DrawTexture(new Rect(r.x + 2f, r.y + 2f, r.width - 4f, r.height - 4f), white);
-        GUI.color = Color.white;
+        TinyWonderUI.DrawSlot(r, selected);
 
         if (!stack.IsEmpty)
         {
