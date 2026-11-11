@@ -20,19 +20,26 @@ using UnityEngine.InputSystem;
 /// Save/load to a JSON file. F5 saves, F9 loads (sleeping in the bed also saves).
 /// Saves: inventory, equipment, hotbar, player health and position, crop plots, opened chests/crates, collected items.
 /// Loading rebuilds the world fresh and then re-applies the saved state, so monsters respawn.
+/// A previous valid save is kept as a backup in case the newest file is damaged.
 /// </summary>
 public static class SaveSystem
 {
+    const int CurrentVersion = 1;
+
     static string FilePath => Path.Combine(Application.persistentDataPath, "farm_save.json");
-    public static bool HasSave => File.Exists(FilePath);
+    static string BackupPath => FilePath + ".bak";
+    static string TempPath => FilePath + ".tmp";
+
+    public static bool HasSave => File.Exists(FilePath) || File.Exists(BackupPath);
 
     public static void Save()
     {
         var player = UnityEngine.Object.FindFirstObjectByType<PlayerController>();
-        if (player == null || player.Health.Dead) return;
+        if (player == null || player.Health == null || player.Health.Dead) return;
 
         var data = new SaveData
         {
+            version = CurrentVersion,
             savedAt = DateTime.Now.ToString("g"),
             slots = Inventory.CaptureSlots(),
             equipment = Inventory.CaptureEquipment(),
@@ -41,56 +48,138 @@ public static class SaveSystem
             x = player.transform.position.x,
             y = player.transform.position.y,
         };
+
         foreach (var kv in WorldState.All)
         {
+            if (kv.Value == null) continue;
             string state = kv.Value.CaptureState();
             if (state != null) data.world.Add(new WorldEntry { id = kv.Key, state = state });
         }
 
         try
         {
-            File.WriteAllText(FilePath, JsonUtility.ToJson(data, true));
+            string json = JsonUtility.ToJson(data, true);
+            File.WriteAllText(TempPath, json);
+
+            if (File.Exists(FilePath))
+            {
+                // Keep the last known save before replacing it with the new file.
+                File.Replace(TempPath, FilePath, BackupPath);
+            }
+            else
+            {
+                File.Move(TempPath, FilePath);
+            }
+
             GameHud.Toast("Game saved");
         }
         catch (Exception e)
         {
-            Debug.LogError("Save failed: " + e.Message);
+            TryDeleteTemp();
+            Debug.LogError("Save failed: " + e);
             GameHud.Toast("Could not save the game (see Console).");
         }
     }
 
     public static bool Load()
     {
-        if (!HasSave) { GameHud.Toast("No save file yet. Press F5 to save."); return false; }
+        if (!HasSave)
+        {
+            GameHud.Toast("No save file yet. Press F5 to save.");
+            return false;
+        }
+
         SaveData data;
-        try { data = JsonUtility.FromJson<SaveData>(File.ReadAllText(FilePath)); }
-        catch (Exception e) { Debug.LogError("Load failed: " + e.Message); GameHud.Toast("The save file could not be read."); return false; }
+        string primaryError;
+        bool loadedFromBackup = false;
+
+        if (!TryReadSave(FilePath, out data, out primaryError))
+        {
+            string backupError;
+            if (!TryReadSave(BackupPath, out data, out backupError))
+            {
+                Debug.LogError("Load failed. Main save: " + primaryError + " Backup: " + backupError);
+                GameHud.Toast("The save file and backup could not be read.");
+                return false;
+            }
+
+            loadedFromBackup = true;
+            Debug.LogWarning("The main save could not be loaded. Restored from backup: " + primaryError);
+        }
 
         var player = UnityEngine.Object.FindFirstObjectByType<PlayerController>();
         if (player == null) return false;
 
-        // Loose items dropped by monsters belong to the old world
+        // Loose items dropped by monsters belong to the old world.
         foreach (var p in UnityEngine.Object.FindObjectsByType<Pickup>(FindObjectsSortMode.None))
             if (p.transform.parent == null) UnityEngine.Object.Destroy(p.gameObject);
 
-        // Rebuild the world from scratch (fresh plots, chests, monsters), then apply what was saved
+        // Rebuild the world from scratch (fresh plots, chests, monsters), then apply what was saved.
         var builder = UnityEngine.Object.FindFirstObjectByType<SimpleMapBuilder>();
         if (builder != null) { builder.enabled = false; builder.enabled = true; }
 
-        foreach (var entry in data.world)
-            if (WorldState.TryGet(entry.id, out var obj)) obj.RestoreState(entry.state);
+        if (data.world != null)
+        {
+            foreach (var entry in data.world)
+            {
+                if (entry == null || string.IsNullOrEmpty(entry.id) || entry.state == null) continue;
+                if (WorldState.TryGet(entry.id, out var obj) && obj != null)
+                    obj.RestoreState(entry.state);
+            }
+        }
 
         Inventory.Restore(data.slots, data.equipment, data.hotbar);
 
         var pos = new Vector2(data.x, data.y);
         var body = player.GetComponent<Rigidbody2D>();
-        body.linearVelocity = Vector2.zero;
-        body.position = pos;
+        if (body != null) body.linearVelocity = Vector2.zero;
+        if (body != null) body.position = pos;
         player.transform.position = pos;
         player.Health.Revive(Mathf.Max(1, data.health));
 
-        GameHud.Toast("Game loaded  (" + data.savedAt + ")");
+        GameHud.Toast(loadedFromBackup
+            ? "Main save damaged. Loaded your previous backup (" + data.savedAt + ")."
+            : "Game loaded  (" + data.savedAt + ")");
         return true;
+    }
+
+    static bool TryReadSave(string path, out SaveData data, out string error)
+    {
+        data = null;
+        error = null;
+
+        if (!File.Exists(path))
+        {
+            error = "File does not exist: " + path;
+            return false;
+        }
+
+        try
+        {
+            data = JsonUtility.FromJson<SaveData>(File.ReadAllText(path));
+            if (data == null) throw new InvalidDataException("Save data is empty or invalid.");
+            if (data.version != CurrentVersion)
+                throw new InvalidDataException("Unsupported save version: " + data.version);
+            if (float.IsNaN(data.x) || float.IsInfinity(data.x) ||
+                float.IsNaN(data.y) || float.IsInfinity(data.y))
+                throw new InvalidDataException("Player position is invalid.");
+
+            // Older or partially populated saves may omit the world-state list.
+            if (data.world == null) data.world = new List<WorldEntry>();
+            return true;
+        }
+        catch (Exception e)
+        {
+            data = null;
+            error = e.Message;
+            return false;
+        }
+    }
+
+    static void TryDeleteTemp()
+    {
+        try { if (File.Exists(TempPath)) File.Delete(TempPath); }
+        catch (Exception e) { Debug.LogWarning("Could not remove temporary save file: " + e.Message); }
     }
 }
 
