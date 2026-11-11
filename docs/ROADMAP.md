@@ -14,10 +14,10 @@ _Written after inspecting the project at commit `e302c25` (28 scripts, ~3,200 li
 | 6 | NPCs & quests | None | |
 | 7 | Economy | Partial | Coins, market stall (sell crops/loot/food, buy seeds/milk/flask), fixed prices. **Missing:** rotating stock, travelling merchant, selling animal goods/gear |
 | 8 | House & building | Partial | Farmhouse interior with bed (heals, skips time), table, chest. **Missing:** upgrades, storage chests, placeable furniture, farm expansion |
-| 9 | Seasons & weather | None | No clock, no calendar |
+| 9 | Seasons & weather | Done (Phase 2) | Clock, 28-day seasons, weather, day/night, forecast. Crops grow slower in winter and faster in rain; gameplay hooks (`GameClock.NewDay`, `HourChanged`) are ready for animals, NPCs, shops and events |
 | 10 | Progression | None | Only HP; no XP/skills |
 | 11 | Events & exploration | Light | Chests, crates, ground pickups, flasks. **Missing:** random events, invasions, treasure maps, secrets, hidden caves |
-| 12 | Inventory | Basic | Per-item counts, HUD shows what you own. **Missing:** slots/stacks, categories, rarity, descriptions, equipment, hotbar, storage, sorting, tooltips |
+| 12 | Inventory | Done (Phase 1) | Data-driven items, 32 slots with stacking, hotbar, equipment, rarity, tooltips, sorting, save/load. **Missing:** storage chests |
 | 13 | Loop connection | Partial | Farm -> craft -> eat -> dungeon -> loot -> sell/craft already works end to end in miniature |
 | 14 | UI | Basic | IMGUI HUD (HP, backpack, prompts, toasts) and one shared list menu (crafting, market) |
 
@@ -52,8 +52,8 @@ Each phase ends with: compile check, playtest, fix, commit. No phase deletes a w
 | Phase | Goal | Main work | Depends on |
 |-------|------|-----------|------------|
 | **0** | Stabilise | You play the current build; fix compile/runtime errors and balance issues I can't see | none |
-| **1** | Foundation | `ItemDatabase` (data-driven: id, name, category, rarity, stack size, value, effects, icon), slot-based inventory with stacking, hotbar, equipment slots, tooltips, inventory screen, save/load | 0 |
-| **2** | Time & weather | Game clock, day/night tint, 4 seasons, weather (sun/rain/storm/snow), sleep advances the day, events hook | 1 |
+| **1** | Foundation (DONE) | `ItemDatabase` (data-driven: id, name, category, rarity, stack size, value, effects, icon), slot-based inventory with stacking, hotbar, equipment slots, tooltips, inventory screen, save/load | 0 |
+| **2** | Time & weather (DONE) | Game clock, day/night tint, 4 seasons, weather (sun/rain/storm/snow), sleep advances the day, events hook | 1 |
 | **3** | Farming v2 | Data-driven crops (duration, season), watering (rain waters), crop quality/rarity, rare dungeon seeds, tilling/farm tools | 1, 2 |
 | **4** | Skills & tools | XP + 6 skills, level bonuses, tool tiers, stamina | 1 |
 | **5** | Gathering | Trees, rocks/ore, mushrooms/herbs, rarity, respawn timers, tool requirements | 3-4 |

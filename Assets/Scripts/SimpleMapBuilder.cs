@@ -48,9 +48,29 @@ public class SimpleMapBuilder : MonoBehaviour
     {
         Cleanup();
         Build();
+        GameClock.SeasonChanged += ApplySeasonTint;
     }
 
-    void OnDisable() => Cleanup();
+    void OnDisable()
+    {
+        GameClock.SeasonChanged -= ApplySeasonTint;
+        Cleanup();
+    }
+
+    /// <summary>Colours the grass for the current season (spring is the natural colour).</summary>
+    void ApplySeasonTint()
+    {
+        Color c;
+        switch (GameClock.CurrentSeason)
+        {
+            case Season.Summer: c = new Color(1.00f, 1.00f, 0.85f); break;
+            case Season.Autumn: c = new Color(1.00f, 0.85f, 0.60f); break;
+            case Season.Winter: c = new Color(0.78f, 0.90f, 1.00f); break;
+            default: c = Color.white; break;
+        }
+        if (groundMap != null) groundMap.color = c;
+        if (detailMap != null) detailMap.color = c;
+    }
 
     void Cleanup()
     {
@@ -99,6 +119,8 @@ public class SimpleMapBuilder : MonoBehaviour
         // Everything generated is rebuilt on load, so keep it out of the saved scene file
         foreach (var t in generatedRoot.GetComponentsInChildren<Transform>(true))
             t.gameObject.hideFlags = HideFlags.DontSave;
+
+        ApplySeasonTint();
 
         if (Application.isPlaying) SetupCamera(); // don't touch the camera in Edit mode
     }

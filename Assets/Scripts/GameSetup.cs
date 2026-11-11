@@ -69,6 +69,8 @@ public static class GameSetup
         if (Object.FindFirstObjectByType<GameHud>() == null) hudGo.AddComponent<GameHud>();
         if (Object.FindFirstObjectByType<InventoryScreen>() == null) hudGo.AddComponent<InventoryScreen>();
         if (Object.FindFirstObjectByType<SaveHotkeys>() == null) hudGo.AddComponent<SaveHotkeys>();
+        if (Object.FindFirstObjectByType<GameClockRunner>() == null) hudGo.AddComponent<GameClockRunner>();
+        if (Object.FindFirstObjectByType<WeatherEffects>() == null) hudGo.AddComponent<WeatherEffects>();
 
         var cam = Camera.main;
         if (cam != null)

@@ -13,6 +13,8 @@ using UnityEngine.InputSystem;
     public List<Inventory.SlotData> slots, equipment;
     public int hotbar, health;
     public float x, y;
+    public int day;
+    public float minutes;
     public List<WorldEntry> world = new List<WorldEntry>();
 }
 
@@ -38,6 +40,8 @@ public static class SaveSystem
             equipment = Inventory.CaptureEquipment(),
             hotbar = Inventory.SelectedHotbar,
             health = player.Health.current,
+            day = GameClock.TotalDays,
+            minutes = GameClock.Minutes,
             x = player.transform.position.x,
             y = player.transform.position.y,
         };
@@ -81,6 +85,7 @@ public static class SaveSystem
             if (WorldState.TryGet(entry.id, out var obj)) obj.RestoreState(entry.state);
 
         Inventory.Restore(data.slots, data.equipment, data.hotbar);
+        GameClock.Restore(data.day, data.minutes);
 
         var pos = new Vector2(data.x, data.y);
         var body = player.GetComponent<Rigidbody2D>();

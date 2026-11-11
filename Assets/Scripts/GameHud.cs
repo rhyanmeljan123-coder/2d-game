@@ -135,11 +135,12 @@ public class GameHud : MonoBehaviour
         var white = Texture2D.whiteTexture;
 
         DrawHealth(W, white);
+        DrawClock(white);
         DrawHotbar(W, H, white);
 
         // --- controls ---
         GUI.Label(new Rect(W - 440f, 6f, 432f, 56f),
-            "WASD / arrows: move   Shift: run   Space / J / click: sword\nE: use / plant / harvest / open   1-8 or wheel: hotbar   F: eat to heal\nI: inventory   F5: save   F9: load   Watch out for traps!", hint);
+            "WASD / arrows: move   Shift: run   Space / J / click: sword\nE: use / plant / harvest / open   1-8 or wheel: hotbar   F: eat to heal\nI: inventory   F5: save   F9: load   Sleep in your bed before 2 AM!", hint);
 
         // --- interaction prompt ---
         if (!UiOpen && !string.IsNullOrEmpty(PlayerInteractor.CurrentPrompt))
@@ -205,6 +206,41 @@ public class GameHud : MonoBehaviour
         float bx = x + 110f;
         if (player.SpeedBoostLeft > 0f) { GUI.Label(new Rect(bx, y + h + 6f, 150f, 20f), $"Speed {Mathf.CeilToInt(player.SpeedBoostLeft)}s", rowInfo); bx += 80f; }
         if (player.StrengthBoostLeft > 0f) GUI.Label(new Rect(bx, y + h + 6f, 150f, 20f), $"Strength {Mathf.CeilToInt(player.StrengthBoostLeft)}s", rowInfo);
+    }
+
+    GUIStyle clockBig, clockSmall;
+
+    /// <summary>Date, time of day and weather (top-left).</summary>
+    void DrawClock(Texture2D white)
+    {
+        if (clockBig == null)
+        {
+            clockBig = new GUIStyle(GUI.skin.label) { fontSize = 18, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleLeft };
+            clockBig.normal.textColor = Color.white;
+            clockSmall = new GUIStyle(GUI.skin.label) { fontSize = 11, alignment = TextAnchor.MiddleLeft };
+            clockSmall.normal.textColor = new Color(1f, 1f, 1f, 0.85f);
+        }
+        float x = 8f, y = 8f, w = 210f, h = 70f;
+        GUI.color = new Color(0f, 0f, 0f, 0.5f);
+        GUI.DrawTexture(new Rect(x, y, w, h), white);
+        GUI.color = Color.white;
+
+        GUI.Label(new Rect(x + 8f, y + 2f, w - 16f, 18f), $"{GameClock.WeekdayName}  {GameClock.DateText}", clockSmall);
+        GUI.Label(new Rect(x + 8f, y + 18f, 110f, 28f), GameClock.TimeText, clockBig);
+
+        Color icon;
+        switch (GameClock.Today)
+        {
+            case Weather.Rainy: icon = new Color(0.45f, 0.65f, 1f); break;
+            case Weather.Stormy: icon = new Color(0.65f, 0.5f, 0.95f); break;
+            case Weather.Snowy: icon = new Color(0.95f, 0.98f, 1f); break;
+            default: icon = new Color(1f, 0.85f, 0.25f); break;
+        }
+        GUI.color = icon;
+        GUI.DrawTexture(new Rect(x + 122f, y + 26f, 12f, 12f), white);
+        GUI.color = Color.white;
+        GUI.Label(new Rect(x + 140f, y + 18f, w - 146f, 28f), GameClock.Today.ToString(), clockSmall);
+        GUI.Label(new Rect(x + 8f, y + 46f, w - 16f, 18f), $"Tomorrow: {GameClock.ForecastTomorrow}", clockSmall);
     }
 
     /// <summary>The 8 hotbar slots along the bottom of the screen (keys 1-8 / mouse wheel).</summary>

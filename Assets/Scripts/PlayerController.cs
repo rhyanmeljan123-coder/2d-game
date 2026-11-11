@@ -124,7 +124,8 @@ public class PlayerController : MonoBehaviour
         sr.flipX = faceLeft;
         sr.color = Time.time < flashUntil ? new Color(1f, 0.45f, 0.45f) : Color.white;
         sr.sortingOrder = 1000 - Mathf.RoundToInt(transform.position.y * 10f);
-        speedThisFrame = (run ? runSpeed : walkSpeed) * (SpeedBoostLeft > 0f ? 1.4f : 1f);
+        speedThisFrame = (run ? runSpeed : walkSpeed) * (SpeedBoostLeft > 0f ? 1.4f : 1f)
+                         * (GameClock.Outdoors && GameClock.Today == Weather.Snowy ? 0.9f : 1f); // deep snow
     }
 
     float speedThisFrame;

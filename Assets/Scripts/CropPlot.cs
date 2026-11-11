@@ -103,7 +103,7 @@ public class CropPlot : Interactable, ISaveable
     void Update()
     {
         if (state != State.Growing) return;
-        timer += Time.deltaTime;
+        timer += Time.deltaTime * GameClock.GrowthMultiplier;
         int newStage = Mathf.Min(4, Mathf.FloorToInt(timer / StageSeconds));
         if (newStage != stage) { stage = newStage; ShowStage(); }
         if (stage >= 4) state = State.Ripe;

@@ -19,6 +19,9 @@ public class CameraFollow : MonoBehaviour
     /// <summary>The first area is the default (outdoors).</summary>
     public Area[] areas = { new Area(new Rect(0, 0, 80, 24), 7f) };
 
+    /// <summary>True while the camera is in an interior area (farmhouse, dungeon): no weather or day/night tint there.</summary>
+    public static bool Indoors { get; private set; }
+
     Camera cam;
     Vector3 velocity;
 
@@ -44,8 +47,9 @@ public class CameraFollow : MonoBehaviour
 
     Area CurrentArea()
     {
+        Indoors = false;
         for (int i = areas.Length - 1; i >= 1; i--)
-            if (areas[i].bounds.Contains(target != null ? (Vector2)target.position : Vector2.zero)) return areas[i];
+            if (areas[i].bounds.Contains(target != null ? (Vector2)target.position : Vector2.zero)) { Indoors = true; return areas[i]; }
         return areas[0];
     }
 
