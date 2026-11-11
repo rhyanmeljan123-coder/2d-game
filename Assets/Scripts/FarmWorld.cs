@@ -167,7 +167,7 @@ public static class FarmWorld
     }
 
     /// <summary>Spawns an item on the ground (used for monster drops).</summary>
-    public static void DropPickup(Item item, Vector2 position) => AddPickup(null, item, position.x, position.y);
+    public static void DropPickup(Item item, Vector2 position, int amount = 1) => AddPickup(null, item, position.x, position.y, amount);
 
     // ---------------------------------------------------------------- interior
 
@@ -275,7 +275,9 @@ public static class FarmWorld
         var col = go.AddComponent<CircleCollider2D>();
         col.isTrigger = true;
         col.radius = 0.7f;
-        go.AddComponent<Pickup>().Init(item, amount);
+        var pickup = go.AddComponent<Pickup>();
+        pickup.Init(item, amount);
+        if (parent != null) pickup.Register(); // monster drops (no parent) are not saved
     }
 
     static void AddPlot(Transform parent, float x, float y)

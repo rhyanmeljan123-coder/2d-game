@@ -10,6 +10,9 @@ public class Health : MonoBehaviour
 
     float lastHit = -99f;
 
+    /// <summary>Optional hook to change incoming damage (the player uses it for armor).</summary>
+    public Func<int, int> DamageModifier;
+
     public bool Dead { get; private set; }
     public bool Invulnerable => Time.time < lastHit + invulnerableSeconds;
 
@@ -29,6 +32,7 @@ public class Health : MonoBehaviour
     public bool TakeDamage(int amount, Vector2 from)
     {
         if (Dead || Invulnerable || amount <= 0) return false;
+        if (DamageModifier != null) amount = DamageModifier(amount);
         lastHit = Time.time;
         current = Mathf.Max(0, current - amount);
         Damaged?.Invoke(amount, from);

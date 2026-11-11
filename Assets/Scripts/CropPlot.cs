@@ -4,7 +4,7 @@ using UnityEngine;
 /// <summary>
 /// A patch of soil. Plant the selected seed (keys 1-5) with E, wait for it to grow, then press E to harvest.
 /// </summary>
-public class CropPlot : Interactable
+public class CropPlot : Interactable, ISaveable
 {
     public const float StageSeconds = 5f; // 4 growth steps, so a crop is ripe after ~20 seconds
 
@@ -29,7 +29,29 @@ public class CropPlot : Interactable
     // plants.png rows for each crop (Pumpkin, Potato, Carrot, Tomato); peas use the tall 2-row sprites
     static readonly int[] PlantRow = { 0, 2, 1, 3, -1 };
 
-    public void Init(SpriteRenderer cropSr) => cropRenderer = cropSr;
+    public void Init(SpriteRenderer cropSr)
+    {
+        cropRenderer = cropSr;
+        WorldState.Register("plot", this);
+    }
+
+    // ---- saving: "state|crop|timer" for anything that is not an empty plot
+    public string CaptureState() => state == State.Empty ? null : $"{(int)state}|{crop}|{timer.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+
+    public void RestoreState(string saved)
+    {
+        state = State.Empty;
+        cropRenderer.sprite = null;
+        if (string.IsNullOrEmpty(saved)) return;
+        var parts = saved.Split('|');
+        if (parts.Length < 3) return;
+        state = (State)int.Parse(parts[0]);
+        crop = int.Parse(parts[1]);
+        timer = float.Parse(parts[2], System.Globalization.CultureInfo.InvariantCulture);
+        stage = Mathf.Min(4, Mathf.FloorToInt(timer / StageSeconds));
+        if (state == State.Ripe) stage = 4;
+        ShowStage();
+    }
 
     public override string Prompt
     {
@@ -41,7 +63,7 @@ public class CropPlot : Interactable
                     int c = Inventory.SelectedCrop;
                     return Inventory.Get(Inventory.SeedFor(c)) > 0
                         ? $"Plant {Inventory.CropName(c)} [E]"
-                        : $"No {Inventory.Name(Inventory.SeedFor(c)).ToLower()} (press 1-5 to switch)";
+                        : $"No {Inventory.Name(Inventory.SeedFor(c)).ToLower()} (hold seeds on the hotbar)";
                 case State.Growing:
                     return $"{Inventory.CropName(crop)} growing...";
                 default:

@@ -65,7 +65,10 @@ public static class GameSetup
         if (player == null) player = CreatePlayer(PlayerStart);
 
         if (player.GetComponent<PlayerInteractor>() == null) player.gameObject.AddComponent<PlayerInteractor>();
-        if (Object.FindFirstObjectByType<GameHud>() == null) new GameObject("HUD").AddComponent<GameHud>();
+        var hudGo = new GameObject("HUD");
+        if (Object.FindFirstObjectByType<GameHud>() == null) hudGo.AddComponent<GameHud>();
+        if (Object.FindFirstObjectByType<InventoryScreen>() == null) hudGo.AddComponent<InventoryScreen>();
+        if (Object.FindFirstObjectByType<SaveHotkeys>() == null) hudGo.AddComponent<SaveHotkeys>();
 
         var cam = Camera.main;
         if (cam != null)

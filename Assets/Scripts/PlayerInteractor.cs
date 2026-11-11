@@ -23,12 +23,27 @@ public class PlayerInteractor : MonoBehaviour
         if (GameHud.UiOpen || GameHud.IsFading) { CurrentPrompt = null; return; }
         if (kb != null)
         {
-            if (kb.fKey.wasPressedThisFrame) Inventory.EatBest(player.Health);
-            if (kb.digit1Key.wasPressedThisFrame) Inventory.SelectedCrop = 0;
-            if (kb.digit2Key.wasPressedThisFrame) Inventory.SelectedCrop = 1;
-            if (kb.digit3Key.wasPressedThisFrame) Inventory.SelectedCrop = 2;
-            if (kb.digit4Key.wasPressedThisFrame) Inventory.SelectedCrop = 3;
-            if (kb.digit5Key.wasPressedThisFrame) Inventory.SelectedCrop = 4;
+            // F eats the held food, or the best food in your bag
+            if (kb.fKey.wasPressedThisFrame)
+            {
+                var held = Inventory.Held;
+                if (!held.IsEmpty && Inventory.Def(held.item).IsEdible) Inventory.EatItem(held.item, player.Health);
+                else Inventory.EatBest(player.Health);
+            }
+
+            // hotbar: keys 1-8
+            Key[] digits = { Key.Digit1, Key.Digit2, Key.Digit3, Key.Digit4, Key.Digit5, Key.Digit6, Key.Digit7, Key.Digit8 };
+            for (int i = 0; i < digits.Length; i++)
+                if (kb[digits[i]].wasPressedThisFrame) Inventory.SelectHotbar(i);
+        }
+
+        // hotbar: mouse wheel
+        var mouse = Mouse.current;
+        if (mouse != null)
+        {
+            float wheel = mouse.scroll.ReadValue().y;
+            if (wheel > 0.1f) Inventory.SelectHotbar((Inventory.SelectedHotbar + Inventory.HotbarSize - 1) % Inventory.HotbarSize);
+            else if (wheel < -0.1f) Inventory.SelectHotbar((Inventory.SelectedHotbar + 1) % Inventory.HotbarSize);
         }
 
         // Look for something usable just in front of the player's feet

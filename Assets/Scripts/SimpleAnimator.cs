@@ -31,6 +31,17 @@ public class SimpleAnimator : MonoBehaviour
         Apply();
     }
 
+    /// <summary>Jumps straight to the last frame of a one-shot animation (used when restoring opened chests).</summary>
+    public void ShowLast(Sprite[] newFrames)
+    {
+        EnsureRenderer();
+        frames = newFrames;
+        loop = false;
+        time = 1000f;
+        lastIndex = -1;
+        Apply();
+    }
+
     void Update()
     {
         if (frames == null || frames.Length == 0) return;

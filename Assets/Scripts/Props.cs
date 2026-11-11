@@ -103,18 +103,34 @@ public static class Props
         var col = go.AddComponent<CircleCollider2D>();
         col.isTrigger = true;
         col.radius = 0.6f;
-        go.AddComponent<FlaskPickup>().kind = kind;
+        var flask = go.AddComponent<FlaskPickup>();
+        flask.kind = kind;
+        flask.Register();
     }
 }
 
 /// <summary>A crate: open it with E for a few coins and the odd ingredient.</summary>
-public class LootBox : Interactable
+public class LootBox : Interactable, ISaveable
 {
     SimpleAnimator anim;
     Sprite[] frames;
     bool opened;
 
-    public void Init(SimpleAnimator a, Sprite[] openFrames) { anim = a; frames = openFrames; }
+    public void Init(SimpleAnimator a, Sprite[] openFrames)
+    {
+        anim = a;
+        frames = openFrames;
+        WorldState.Register("box", this);
+    }
+
+    public string CaptureState() => opened ? "open" : null;
+
+    public void RestoreState(string saved)
+    {
+        opened = saved == "open";
+        if (opened) anim.ShowLast(frames);
+        else anim.Play(new[] { frames[0] }, 1f, true, true);
+    }
 
     public override string Prompt => opened ? null : "Open box [E]";
 
@@ -141,9 +157,14 @@ public class LootBox : Interactable
 }
 
 /// <summary>A blue flask lying around. Walk over it for a temporary boost.</summary>
-public class FlaskPickup : MonoBehaviour
+public class FlaskPickup : MonoBehaviour, ISaveable
 {
     public int kind; // 0 speed, 1 strength
+    bool collected;
+
+    public void Register() => WorldState.Register("flask", this);
+    public string CaptureState() => collected ? "gone" : null;
+    public void RestoreState(string saved) { if (saved == "gone") { collected = true; Destroy(gameObject); } }
 
     void OnTriggerEnter2D(Collider2D other)
     {
@@ -151,6 +172,7 @@ public class FlaskPickup : MonoBehaviour
         if (player == null) return;
         if (kind == 0) { player.AddSpeedBoost(25f); GameHud.Toast("Speed flask: you move faster for 25 seconds!"); }
         else { player.AddStrengthBoost(30f); GameHud.Toast("Strength flask: your sword hits harder for 30 seconds!"); }
+        collected = true;
         Destroy(gameObject);
     }
 }

@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>Item ids. Add new items at the END, then add a matching entry in Resources/Data/items.json.</summary>
 public enum Item
 {
     Pumpkin, Potato, Carrot, Tomato, Peas,                                  // harvested crops (0-4)
@@ -9,96 +11,259 @@ public enum Item
     SlimeGel, Bone,                                                          // dungeon drops
     Salad, VegStew, PumpkinSoup, BoneBroth, HealingPotion, HeartyPie,        // crafted food & potions
     Coin, SilverKey, GoldKey,                                                // money and dungeon keys
-    RedFlask, BigRedFlask                                                    // healing flasks
+    RedFlask, BigRedFlask,                                                   // healing flasks
+    WoodenSword, IronSword, LeatherTunic, KnightArmor                        // equipment
 }
 
-/// <summary>The player's items. Static, so anything can add to it. Reset every time Play starts.</summary>
+public struct ItemStack
+{
+    public Item item;
+    public int count;
+    public bool IsEmpty => count <= 0;
+    public ItemStack(Item i, int c) { item = i; count = c; }
+}
+
+/// <summary>
+/// The player's items: 32 slots (the first row of 8 is the hotbar) plus equipment slots.
+/// Item data (names, prices, rarity...) lives in ItemDatabase; this class only holds stacks and does the bookkeeping.
+/// Everything else in the game keeps using Get / Add / TryRemove / Name / Icon, so nothing else had to change.
+/// </summary>
 public static class Inventory
 {
     public const int CropCount = 5;
-    static readonly int[] counts = new int[Enum.GetValues(typeof(Item)).Length];
+    public const int Capacity = 32, HotbarSize = 8, Columns = 8;
 
-    static readonly string[] names =
-    {
-        "Pumpkin", "Potato", "Carrot", "Tomato", "Peas",
-        "Pumpkin seeds", "Potato seeds", "Carrot seeds", "Tomato seeds", "Pea seeds",
-        "Milk", "Herb", "Flower",
-        "Slime gel", "Bone",
-        "Salad", "Vegetable stew", "Pumpkin soup", "Bone broth", "Healing potion", "Hearty pie",
-        "Coins", "Silver key", "Gold key",
-        "Red flask", "Big red flask",
-    };
+    static readonly ItemStack[] slots = new ItemStack[Capacity];
+    static readonly ItemStack[] equipment = new ItemStack[5]; // indexed by (int)EquipSlot; index 0 unused
+    static int lastSeedCrop;
 
-    // How much health each item restores when eaten (0 = can't be eaten)
-    static readonly int[] heal =
-    {
-        12, 6, 8, 10, 5,          // raw crops
-        0, 0, 0, 0, 0,            // seeds
-        10, 15, 0,                // milk, herb, flower
-        0, 0,                     // slime gel, bone
-        30, 40, 50, 45, 70, 100,  // crafted
-        0, 0, 0,                  // coins, keys
-        25, 60,                   // red flasks
-    };
-
-    // What the market stall pays for one of each item (0 = can't be sold)
-    static readonly int[] sellPrice =
-    {
-        14, 8, 9, 10, 7,
-        0, 0, 0, 0, 0,
-        6, 8, 5,
-        12, 10,
-        40, 50, 60, 55, 80, 110,
-        0, 0, 0,
-        30, 70,
-    };
-
-    // What the market stall charges (0 = not for sale)
-    static readonly int[] buyPrice =
-    {
-        0, 0, 0, 0, 0,
-        8, 5, 5, 6, 5,
-        10, 0, 0,
-        0, 0,
-        0, 0, 0, 0, 0, 0,
-        0, 0, 0,
-        45, 0,
-    };
-
-    /// <summary>Which crop (0-4) is picked for planting. Change with keys 1-5.</summary>
-    public static int SelectedCrop;
+    public static int SelectedHotbar { get; private set; }
     public static event Action Changed;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void Reset()
     {
-        Array.Clear(counts, 0, counts.Length);
-        for (int i = 0; i < CropCount; i++) counts[(int)SeedFor(i)] = 3; // start with 3 of each seed
-        SelectedCrop = 0;
+        Array.Clear(slots, 0, slots.Length);
+        Array.Clear(equipment, 0, equipment.Length);
+        for (int i = 0; i < CropCount; i++) slots[i] = new ItemStack(SeedFor(i), 3); // start with 3 of each seed on the hotbar
+        SelectedHotbar = 0;
+        lastSeedCrop = 0;
         Changed = null;
     }
 
+    // ------------------------------------------------------------ item data shortcuts
+
+    public static ItemDef Def(Item item) => ItemDatabase.Get(item);
     public static Item SeedFor(int crop) => (Item)(CropCount + crop);
     public static Item CropItem(int crop) => (Item)crop;
-    public static string Name(Item item) => names[(int)item];
-    public static string CropName(int crop) => names[crop];
-    public static int HealAmount(Item item) => heal[(int)item];
-    public static int SellPrice(Item item) => sellPrice[(int)item];
-    public static int BuyPrice(Item item) => buyPrice[(int)item];
+    public static string Name(Item item) => Def(item).name;
+    public static string CropName(int crop) => Def(CropItem(crop)).name;
+    public static int HealAmount(Item item) => Def(item).heal;
+    public static int SellPrice(Item item) => Def(item).sell;
+    public static int BuyPrice(Item item) => Def(item).buy;
+    public static Sprite Icon(Item item) => Def(item).Icon;
 
-    public static int Get(Item item) => counts[(int)item];
+    // ------------------------------------------------------------ slots
+
+    public static ItemStack GetSlot(int index) => slots[index];
+    public static ItemStack GetEquipped(EquipSlot slot) => equipment[(int)slot];
+
+    public static int Get(Item item)
+    {
+        int total = 0;
+        for (int i = 0; i < Capacity; i++) if (!slots[i].IsEmpty && slots[i].item == item) total += slots[i].count;
+        return total;
+    }
+
+    /// <summary>True if the whole amount fits in the inventory right now.</summary>
+    public static bool CanAdd(Item item, int amount)
+    {
+        int max = Def(item).stack, space = 0;
+        for (int i = 0; i < Capacity; i++)
+        {
+            if (slots[i].IsEmpty) space += max;
+            else if (slots[i].item == item) space += max - slots[i].count;
+        }
+        return space >= amount;
+    }
 
     public static void Add(Item item, int amount = 1)
     {
-        counts[(int)item] += amount;
+        int left = AddToSlots(item, amount);
+        if (left > 0) DropOverflow(item, left);
         Changed?.Invoke();
+    }
+
+    /// <summary>Puts items into existing stacks first, then empty slots. Returns how many did not fit.</summary>
+    static int AddToSlots(Item item, int amount)
+    {
+        int max = Def(item).stack;
+        for (int i = 0; i < Capacity && amount > 0; i++)
+        {
+            if (slots[i].IsEmpty || slots[i].item != item || slots[i].count >= max) continue;
+            int put = Mathf.Min(max - slots[i].count, amount);
+            slots[i].count += put;
+            amount -= put;
+        }
+        for (int i = 0; i < Capacity && amount > 0; i++)
+        {
+            if (!slots[i].IsEmpty) continue;
+            int put = Mathf.Min(max, amount);
+            slots[i] = new ItemStack(item, put);
+            amount -= put;
+        }
+        return amount;
+    }
+
+    static void DropOverflow(Item item, int amount)
+    {
+        GameHud.Toast($"Inventory full! Dropped {amount} {Name(item).ToLower()}.");
+        var player = UnityEngine.Object.FindFirstObjectByType<PlayerController>();
+        if (player != null) FarmWorld.DropPickup(item, (Vector2)player.transform.position + Vector2.down * 0.6f, amount);
     }
 
     public static bool TryRemove(Item item, int amount = 1)
     {
-        if (counts[(int)item] < amount) return false;
-        counts[(int)item] -= amount;
+        if (Get(item) < amount) return false;
+        // take from the backpack end first so hotbar stacks (like your seeds) stay put as long as possible
+        for (int i = Capacity - 1; i >= 0 && amount > 0; i--)
+        {
+            if (slots[i].IsEmpty || slots[i].item != item) continue;
+            int take = Mathf.Min(slots[i].count, amount);
+            slots[i].count -= take;
+            amount -= take;
+            if (slots[i].count <= 0) slots[i] = default;
+        }
         Changed?.Invoke();
+        return true;
+    }
+
+    // ------------------------------------------------------------ hotbar
+
+    public static ItemStack Held => slots[SelectedHotbar];
+
+    public static void SelectHotbar(int index)
+    {
+        SelectedHotbar = Mathf.Clamp(index, 0, HotbarSize - 1);
+        var held = slots[SelectedHotbar];
+        if (!held.IsEmpty && Def(held.item).IsSeed) lastSeedCrop = (int)held.item - CropCount;
+        Changed?.Invoke();
+    }
+
+    /// <summary>The crop that will be planted: the seed you are holding, or the last seed you held.</summary>
+    public static int SelectedCrop
+    {
+        get
+        {
+            var held = slots[SelectedHotbar];
+            if (!held.IsEmpty && Def(held.item).IsSeed) return (int)held.item - CropCount;
+            return lastSeedCrop;
+        }
+    }
+
+    // ------------------------------------------------------------ equipment
+
+    public static int EquipmentAttack { get { int a = 0; for (int i = 1; i < equipment.Length; i++) if (!equipment[i].IsEmpty) a += Def(equipment[i].item).attack; return a; } }
+    public static int EquipmentDefense { get { int d = 0; for (int i = 1; i < equipment.Length; i++) if (!equipment[i].IsEmpty) d += Def(equipment[i].item).defense; return d; } }
+
+    /// <summary>Left-click on an inventory slot with the mouse cursor holding a stack (or nothing).</summary>
+    public static void ClickSlot(int i, ref ItemStack cursor)
+    {
+        var s = slots[i];
+        if (cursor.IsEmpty)
+        {
+            if (!s.IsEmpty) { cursor = s; slots[i] = default; }
+        }
+        else if (s.IsEmpty)
+        {
+            slots[i] = cursor; cursor = default;
+        }
+        else if (s.item == cursor.item)
+        {
+            int move = Mathf.Min(Def(s.item).stack - s.count, cursor.count);
+            if (move > 0)
+            {
+                s.count += move; cursor.count -= move; slots[i] = s;
+                if (cursor.count <= 0) cursor = default;
+            }
+        }
+        else
+        {
+            slots[i] = cursor; cursor = s; // swap
+        }
+        Changed?.Invoke();
+    }
+
+    /// <summary>Right-click: with a stack on the cursor drop one into the slot; otherwise use/equip what is in the slot.</summary>
+    public static void RightClickSlot(int i, ref ItemStack cursor)
+    {
+        var s = slots[i];
+        if (!cursor.IsEmpty)
+        {
+            if (s.IsEmpty || (s.item == cursor.item && s.count < Def(s.item).stack))
+            {
+                slots[i] = new ItemStack(cursor.item, s.IsEmpty ? 1 : s.count + 1);
+                cursor.count--;
+                if (cursor.count <= 0) cursor = default;
+                Changed?.Invoke();
+            }
+            return;
+        }
+        if (s.IsEmpty) return;
+
+        var def = Def(s.item);
+        if (def.IsEquipment) { EquipFromSlot(i); return; }
+        if (def.IsEdible)
+        {
+            var player = UnityEngine.Object.FindFirstObjectByType<PlayerController>();
+            if (player != null) EatItem(s.item, player.Health);
+            return;
+        }
+        if (def.IsSeed) { if (i < HotbarSize) SelectHotbar(i); else GameHud.Toast("Move seeds to the hotbar (top row) to plant them."); return; }
+        GameHud.Toast($"{def.name}: nothing to do with it right now.");
+    }
+
+    public static void EquipFromSlot(int i)
+    {
+        var s = slots[i];
+        if (s.IsEmpty) return;
+        var def = Def(s.item);
+        if (!def.IsEquipment) return;
+        var old = equipment[(int)def.equip];
+        equipment[(int)def.equip] = new ItemStack(s.item, 1);
+        slots[i] = old; // swap the old gear back into the slot (or leave it empty)
+        GameHud.Toast($"Equipped {def.name}");
+        Changed?.Invoke();
+    }
+
+    /// <summary>Click on an equipment slot with the cursor.</summary>
+    public static void ClickEquip(EquipSlot slot, ref ItemStack cursor)
+    {
+        var cur = equipment[(int)slot];
+        if (cursor.IsEmpty)
+        {
+            if (!cur.IsEmpty) { cursor = cur; equipment[(int)slot] = default; }
+        }
+        else if (Def(cursor.item).equip == slot)
+        {
+            equipment[(int)slot] = new ItemStack(cursor.item, 1);
+            cursor = cur;
+        }
+        else GameHud.Toast($"That doesn't go in the {slot.ToString().ToLower()} slot.");
+        Changed?.Invoke();
+    }
+
+    // ------------------------------------------------------------ eating
+
+    public static bool EatItem(Item item, Health hp)
+    {
+        if (hp == null || hp.Dead) return false;
+        int h = Def(item).heal;
+        if (h <= 0 || Get(item) <= 0) return false;
+        if (hp.current >= hp.max) { GameHud.Toast("You're already at full health."); return false; }
+        TryRemove(item);
+        hp.Heal(h);
+        GameHud.Toast($"Ate {Name(item).ToLower()}  +{h} HP");
         return true;
     }
 
@@ -115,45 +280,84 @@ public static class Inventory
         bool found = false;
         Item best = default;
         int bestHeal = 0;
-        for (int i = 0; i < counts.Length; i++)
+        foreach (Item it in Enum.GetValues(typeof(Item)))
         {
-            int h = heal[i];
-            if (h <= 0 || counts[i] <= 0) continue;
+            int h = Def(it).heal;
+            if (h <= 0 || Get(it) <= 0) continue;
             bool covers = h >= missing, bestCovers = bestHeal >= missing;
             if (!found || (covers && !bestCovers) || (covers && bestCovers && h < bestHeal) || (!covers && !bestCovers && h > bestHeal))
-            {
-                found = true; best = (Item)i; bestHeal = h;
-            }
+            { found = true; best = it; bestHeal = h; }
         }
         if (!found) { GameHud.Toast("Nothing to eat! Harvest crops or craft food."); return false; }
-
-        TryRemove(best);
-        hp.Heal(bestHeal);
-        GameHud.Toast($"Ate {Name(best).ToLower()}  +{bestHeal} HP");
-        return true;
+        return EatItem(best, hp);
     }
 
-    /// <summary>Icon from items.png (5x3 of 16px), crafted.png (4x2 of 16px) or the Traps strips.</summary>
-    public static Sprite Icon(Item item)
+    // ------------------------------------------------------------ sorting
+
+    /// <summary>Merges stacks and sorts the backpack (everything below the hotbar row) by category, rarity, name.</summary>
+    public static void Sort()
     {
-        int i = (int)item;
-        if (i < (int)Item.SlimeGel)
+        var totals = new Dictionary<Item, int>();
+        for (int i = HotbarSize; i < Capacity; i++)
         {
-            int row, col;
-            if (i < 5) { row = 0; col = i; }
-            else if (i < 10) { row = 1; col = i - 5; }
-            else { row = 2; col = i - 10; }
-            var sheet = SpriteSheet.Slice("Items/items", 16, new Vector2(8, 8));
-            return sheet.Length == 0 ? null : sheet[row, col];
+            if (slots[i].IsEmpty) continue;
+            totals.TryGetValue(slots[i].item, out int have);
+            totals[slots[i].item] = have + slots[i].count;
+            slots[i] = default;
         }
-        if (i < (int)Item.Coin)
+        var items = new List<Item>(totals.Keys);
+        items.Sort((a, b) =>
         {
-            int j = i - (int)Item.SlimeGel;
-            var crafted = SpriteSheet.Slice("Items/crafted", 16, new Vector2(8, 8));
-            return crafted.Length == 0 ? null : crafted[j / 4, j % 4];
+            var da = Def(a); var db = Def(b);
+            int c = da.category.CompareTo(db.category);
+            if (c != 0) return c;
+            c = db.rarity.CompareTo(da.rarity);
+            return c != 0 ? c : string.Compare(da.name, db.name, StringComparison.Ordinal);
+        });
+
+        int slot = HotbarSize;
+        foreach (var item in items)
+        {
+            int left = totals[item], max = Def(item).stack;
+            while (left > 0 && slot < Capacity)
+            {
+                int put = Mathf.Min(max, left);
+                slots[slot++] = new ItemStack(item, put);
+                left -= put;
+            }
         }
-        string strip = item == Item.Coin ? "coin" : item == Item.SilverKey ? "key_silver" : item == Item.GoldKey ? "key_gold"
-                     : item == Item.RedFlask ? "flask_1" : "flask_4";
-        return SpriteSheet.Cut("Traps/" + strip, 0, 0, 16, 16, new Vector2(8, 8));
+        Changed?.Invoke();
+    }
+
+    // ------------------------------------------------------------ saving
+
+    [Serializable] public class SlotData { public string item; public int count; }
+
+    public static List<SlotData> CaptureSlots()
+    {
+        var list = new List<SlotData>();
+        for (int i = 0; i < Capacity; i++) list.Add(ToData(slots[i]));
+        return list;
+    }
+
+    public static List<SlotData> CaptureEquipment()
+    {
+        var list = new List<SlotData>();
+        for (int i = 0; i < equipment.Length; i++) list.Add(ToData(equipment[i]));
+        return list;
+    }
+
+    static SlotData ToData(ItemStack s) => s.IsEmpty ? new SlotData { item = "", count = 0 } : new SlotData { item = s.item.ToString(), count = s.count };
+
+    static ItemStack FromData(SlotData d) =>
+        d != null && d.count > 0 && Enum.TryParse(d.item, out Item it) ? new ItemStack(it, d.count) : default;
+
+    public static void Restore(List<SlotData> slotData, List<SlotData> equipmentData, int hotbar)
+    {
+        Array.Clear(slots, 0, slots.Length);
+        Array.Clear(equipment, 0, equipment.Length);
+        for (int i = 0; i < Capacity && slotData != null && i < slotData.Count; i++) slots[i] = FromData(slotData[i]);
+        for (int i = 0; i < equipment.Length && equipmentData != null && i < equipmentData.Count; i++) equipment[i] = FromData(equipmentData[i]);
+        SelectHotbar(hotbar);
     }
 }

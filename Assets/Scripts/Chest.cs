@@ -7,7 +7,7 @@ public enum LootKind { Common, SilverLocked, GoldLocked }
 /// An animated chest. Press E to open it for loot (coins, seeds, items).
 /// Locked chests need a key found in the dungeon: silver key -> east chest (holds the gold key), gold key -> north chest.
 /// </summary>
-public class Chest : Interactable
+public class Chest : Interactable, ISaveable
 {
     SimpleAnimator anim;
     Sprite[] closedFrames, openFrames;
@@ -21,6 +21,16 @@ public class Chest : Interactable
         openFrames = open;
         kind = lootKind;
         anim.Play(closedFrames, 3f);
+        WorldState.Register("chest", this);
+    }
+
+    public string CaptureState() => opened ? "open" : null;
+
+    public void RestoreState(string saved)
+    {
+        opened = saved == "open";
+        if (opened) anim.ShowLast(openFrames);
+        else anim.Play(closedFrames, 3f, true, true);
     }
 
     Item? RequiredKey => kind == LootKind.SilverLocked ? Item.SilverKey : kind == LootKind.GoldLocked ? Item.GoldKey : (Item?)null;
@@ -62,11 +72,13 @@ public class Chest : Interactable
                 break;
             case LootKind.SilverLocked:
                 Give(Item.GoldKey, 1);
+                Give(Item.IronSword, 1);
                 Give(Item.HealingPotion, 1);
                 Give(Item.RedFlask, 1);
                 Give(Item.Coin, Random.Range(10, 21));
                 break;
             default: // GoldLocked: the dungeon's treasure
+                Give(Item.KnightArmor, 1);
                 Give(Item.HeartyPie, 1);
                 Give(Item.HealingPotion, 2);
                 Give(Item.BigRedFlask, 1);

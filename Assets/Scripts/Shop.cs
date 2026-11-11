@@ -7,11 +7,12 @@ public class ShopStall : Interactable
     public override string Prompt => "Trade at the market stall [E]";
 
     public override void Interact() =>
-        GameHud.OpenMenu("Market stall", "Sell what you grow and find, buy seeds and flasks", BuildMenu, "Coins");
+        GameHud.OpenMenu("Market stall", "Sell what you grow and find; buy seeds, flasks and basic gear", BuildMenu, "Coins");
 
     static readonly Item[] Buyable =
     {
         Item.PumpkinSeeds, Item.PotatoSeeds, Item.CarrotSeeds, Item.TomatoSeeds, Item.PeaSeeds, Item.Milk, Item.RedFlask,
+        Item.WoodenSword, Item.LeatherTunic,
     };
 
     static List<MenuEntry> BuildMenu()

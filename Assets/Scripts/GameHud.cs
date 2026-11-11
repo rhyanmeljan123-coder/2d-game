@@ -35,7 +35,9 @@ public class GameHud : MonoBehaviour
     static string menuTitle, menuSubtitle;
     static Func<List<MenuEntry>> menuProvider;
     static bool menuShowCoins;
-    public static bool UiOpen => menuOpen;
+    public static bool MenuOpen => menuOpen;
+    /// <summary>True while any full-screen UI (list menu or inventory) is open: the player stands still.</summary>
+    public static bool UiOpen => menuOpen || InventoryScreen.IsOpen;
     const int VisibleRows = 7;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -133,16 +135,16 @@ public class GameHud : MonoBehaviour
         var white = Texture2D.whiteTexture;
 
         DrawHealth(W, white);
-        DrawInventory(white);
+        DrawHotbar(W, H, white);
 
         // --- controls ---
         GUI.Label(new Rect(W - 440f, 6f, 432f, 56f),
-            "WASD / arrows: move   Shift: run   Space / J / click: sword\nE: use / plant / harvest / open   1-5: choose seed   F: eat to heal\nCrafting table: farmhouse   Market stall: sell for coins   Watch out for traps!", hint);
+            "WASD / arrows: move   Shift: run   Space / J / click: sword\nE: use / plant / harvest / open   1-8 or wheel: hotbar   F: eat to heal\nI: inventory   F5: save   F9: load   Watch out for traps!", hint);
 
         // --- interaction prompt ---
-        if (!menuOpen && !string.IsNullOrEmpty(PlayerInteractor.CurrentPrompt))
+        if (!UiOpen && !string.IsNullOrEmpty(PlayerInteractor.CurrentPrompt))
         {
-            var rect = new Rect(W * 0.5f - 200f, H - 64f, 400f, 30f);
+            var rect = new Rect(W * 0.5f - 200f, H - 108f, 400f, 30f);
             GUI.color = new Color(0f, 0f, 0f, 0.55f);
             GUI.DrawTexture(rect, white);
             GUI.color = Color.white;
@@ -150,7 +152,7 @@ public class GameHud : MonoBehaviour
         }
 
         // --- pop-up messages ---
-        float ty = H - 100f;
+        float ty = H - 144f;
         for (int i = toasts.Count - 1; i >= 0; i--)
         {
             float left = toasts[i].until - Time.time;
@@ -205,55 +207,27 @@ public class GameHud : MonoBehaviour
         if (player.StrengthBoostLeft > 0f) GUI.Label(new Rect(bx, y + h + 6f, 150f, 20f), $"Strength {Mathf.CeilToInt(player.StrengthBoostLeft)}s", rowInfo);
     }
 
-    static readonly Item[] BackpackOrder =
+    /// <summary>The 8 hotbar slots along the bottom of the screen (keys 1-8 / mouse wheel).</summary>
+    void DrawHotbar(float W, float H, Texture2D white)
     {
-        Item.SilverKey, Item.GoldKey, Item.RedFlask, Item.BigRedFlask,
-        Item.Pumpkin, Item.Potato, Item.Carrot, Item.Tomato, Item.Peas, Item.Milk, Item.Herb, Item.Flower, Item.SlimeGel, Item.Bone,
-        Item.Salad, Item.VegStew, Item.PumpkinSoup, Item.BoneBroth, Item.HealingPotion, Item.HeartyPie,
-    };
+        float slot = 42f, gap = 4f;
+        float total = Inventory.HotbarSize * (slot + gap) - gap;
+        float x0 = W * 0.5f - total * 0.5f, y0 = H - slot - 10f;
 
-    void DrawInventory(Texture2D white)
-    {
-        float slot = 34f, gap = 4f, x0 = 8f, y0 = 8f;
-
-        // items you actually have (everything except seeds), 6 per row
-        var have = new List<Item>();
-        foreach (var it in BackpackOrder) if (Inventory.Get(it) > 0) have.Add(it);
-        int rows = 1 + Mathf.CeilToInt(have.Count / 6f);
-
-        GUI.color = new Color(0f, 0f, 0f, 0.4f);
-        GUI.DrawTexture(new Rect(x0 - 4f, y0 - 4f, (slot + gap) * 6f + 4f, (slot + gap) * rows + 4f), white);
+        GUI.color = new Color(0f, 0f, 0f, 0.45f);
+        GUI.DrawTexture(new Rect(x0 - 6f, y0 - 6f, total + 12f, slot + 12f), white);
         GUI.color = Color.white;
+        for (int i = 0; i < Inventory.HotbarSize; i++)
+            ItemUI.Slot(new Rect(x0 + i * (slot + gap), y0, slot, slot), Inventory.GetSlot(i), i == Inventory.SelectedHotbar, (i + 1).ToString());
 
-        for (int i = 0; i < 5; i++)
-            DrawSlot(new Rect(x0 + i * (slot + gap), y0, slot, slot), Inventory.SeedFor(i), Inventory.SelectedCrop == i, (i + 1).ToString());
-        for (int i = 0; i < have.Count; i++)
-            DrawSlot(new Rect(x0 + (i % 6) * (slot + gap), y0 + (1 + i / 6) * (slot + gap), slot, slot), have[i], false, null);
-    }
-
-    void DrawSlot(Rect r, Item item, bool selected, string key)
-    {
-        var white = Texture2D.whiteTexture;
-        GUI.color = selected ? new Color(1f, 0.85f, 0.2f, 0.9f) : new Color(1f, 1f, 1f, 0.15f);
-        GUI.DrawTexture(r, white);
-        GUI.color = new Color(0.12f, 0.1f, 0.1f, 0.85f);
-        GUI.DrawTexture(new Rect(r.x + 2f, r.y + 2f, r.width - 4f, r.height - 4f), white);
-
-        int n = Inventory.Get(item);
-        var icon = Inventory.Icon(item);
-        if (icon != null)
+        var held = Inventory.Held;
+        if (!held.IsEmpty)
         {
-            var tex = icon.texture; var tr = icon.rect;
-            GUI.color = n > 0 ? Color.white : new Color(1f, 1f, 1f, 0.35f);
-            GUI.DrawTextureWithTexCoords(new Rect(r.x + 3f, r.y + 3f, r.width - 6f, r.height - 6f), tex,
-                new Rect(tr.x / tex.width, tr.y / tex.height, tr.width / tex.width, tr.height / tex.height));
-        }
-        GUI.color = Color.white;
-        GUI.Label(new Rect(r.x, r.y, r.width - 3f, r.height - 1f), n.ToString(), count);
-        if (key != null)
-        {
-            var keyStyle = new GUIStyle(count) { alignment = TextAnchor.UpperLeft, fontSize = 10 };
-            GUI.Label(new Rect(r.x + 3f, r.y + 1f, 14f, 14f), key, keyStyle);
+            var d = Inventory.Def(held.item);
+            rowInfo.normal.textColor = ItemDatabase.RarityColor(d.rarity);
+            rowInfo.alignment = TextAnchor.MiddleCenter;
+            GUI.Label(new Rect(x0, y0 - 24f, total, 18f), d.name, rowInfo);
+            rowInfo.alignment = TextAnchor.MiddleLeft;
         }
     }
 

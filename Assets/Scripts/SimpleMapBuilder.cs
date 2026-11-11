@@ -71,6 +71,7 @@ public class SimpleMapBuilder : MonoBehaviour
 
     void Build()
     {
+        WorldState.Clear();
         generatedRoot = new GameObject(RootName);
         generatedRoot.transform.SetParent(transform, false);
 

@@ -16,6 +16,7 @@ public class Bed : Interactable
             var player = FindFirstObjectByType<PlayerController>();
             if (player != null) player.Health.Heal(player.Health.max);
             GameHud.Toast("You slept well: full health, and your crops grew a little!");
+            SaveSystem.Save();
         });
     }
 }
