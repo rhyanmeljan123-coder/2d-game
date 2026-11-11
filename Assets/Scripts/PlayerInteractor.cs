@@ -27,7 +27,7 @@ public class PlayerInteractor : MonoBehaviour
             if (kb.fKey.wasPressedThisFrame)
             {
                 var held = Inventory.Held;
-                if (!held.IsEmpty && Inventory.Def(held.item).IsEdible) Inventory.EatItem(held.item, player.Health);
+                if (!held.IsEmpty && (Inventory.Def(held.item).IsEdible || held.item == Item.SwiftTonic || held.item == Item.StrengthTonic)) Inventory.UseItem(held.item, player);
                 else Inventory.EatBest(player.Health);
             }
 
