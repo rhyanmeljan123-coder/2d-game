@@ -14,7 +14,8 @@ public enum Item
     RedFlask, BigRedFlask,                                                   // healing flasks
     WoodenSword, IronSword, LeatherTunic, KnightArmor, WateringCan,             // equipment + farm tool
     Wood, Stone,                                                             // gathered materials
-    Egg, Wool, Truffle                                                        // animal products
+    Egg, Wool, Truffle,                                                       // animal products
+    FenceKit, StorageCrateKit                                                 // buildables
 }
 
 public struct ItemStack
