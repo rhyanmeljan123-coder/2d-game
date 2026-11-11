@@ -137,6 +137,15 @@ public static class SaveSystem
         var player = UnityEngine.Object.FindFirstObjectByType<PlayerController>();
         if (player == null) return false;
 
+        var savedPosition = new Vector2(data.x, data.y);
+        var mapBuilder = UnityEngine.Object.FindFirstObjectByType<SimpleMapBuilder>();
+        if (!IsValidPlayerPosition(savedPosition, mapBuilder))
+        {
+            Debug.LogError("Load failed: saved player position is outside the generated world.");
+            GameHud.Toast("Save position is invalid. Your current game was not changed.");
+            return false;
+        }
+
         // Loose items dropped by monsters belong to the old world.
         foreach (var p in UnityEngine.Object.FindObjectsByType<Pickup>(FindObjectsSortMode.None))
             if (p.transform.parent == null) UnityEngine.Object.Destroy(p.gameObject);
@@ -172,17 +181,37 @@ public static class SaveSystem
 
         Inventory.Restore(data.slots, data.equipment, data.hotbar);
 
-        var pos = new Vector2(data.x, data.y);
         var body = player.GetComponent<Rigidbody2D>();
         if (body != null) body.linearVelocity = Vector2.zero;
-        if (body != null) body.position = pos;
-        player.transform.position = pos;
-        player.Health.Revive(Mathf.Max(1, data.health));
+        if (body != null) body.position = savedPosition;
+        player.transform.position = savedPosition;
+
+        int safeHealth = Mathf.Clamp(data.health, 1, Mathf.Max(1, player.Health.max));
+        player.Health.Revive(safeHealth);
 
         GameHud.Toast(loadedFromBackup
             ? "Main save damaged. Loaded your previous backup (" + data.savedAt + ")."
             : "Game loaded  (" + data.savedAt + ")");
         return true;
+    }
+
+    static bool IsValidPlayerPosition(Vector2 position, SimpleMapBuilder builder)
+    {
+        if (float.IsNaN(position.x) || float.IsInfinity(position.x) ||
+            float.IsNaN(position.y) || float.IsInfinity(position.y))
+            return false;
+
+        // Match the generated farm, farmhouse interior, and dungeon with a small safety margin.
+        // If no builder exists, use a broad sanity range rather than rejecting a valid custom scene.
+        if (builder == null)
+            return Mathf.Abs(position.x) <= 1000f && Mathf.Abs(position.y) <= 1000f;
+
+        float minX = -2f;
+        float maxX = builder.DungeonOrigin.x + DungeonWorld.Width + 2f;
+        float minY = -2f;
+        float maxY = builder.DungeonOrigin.y + DungeonWorld.Height + 2f;
+        return position.x >= minX && position.x <= maxX &&
+               position.y >= minY && position.y <= maxY;
     }
 
     static bool TryReadSave(string path, out SaveData data, out string error)
