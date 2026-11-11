@@ -31,6 +31,8 @@ public static class Recipes
         new Recipe { name = "Bone broth", result = Item.BoneBroth, needs = new[] { (Item.Bone, 2), (Item.Carrot, 1) } },
         new Recipe { name = "Healing potion", result = Item.HealingPotion, needs = new[] { (Item.Herb, 2), (Item.Flower, 1), (Item.SlimeGel, 1) } },
         new Recipe { name = "Hearty pie", result = Item.HeartyPie, needs = new[] { (Item.Pumpkin, 1), (Item.Potato, 2), (Item.Milk, 1) } },
+        new Recipe { name = "Swift tonic", result = Item.SwiftTonic, needs = new[] { (Item.Herb, 1), (Item.Peas, 2), (Item.Flower, 1) } },
+        new Recipe { name = "Strength tonic", result = Item.StrengthTonic, needs = new[] { (Item.SlimeGel, 1), (Item.Bone, 1), (Item.Pumpkin, 1) } },
     };
 
     public static List<MenuEntry> BuildMenu()
@@ -45,7 +47,7 @@ public static class Recipes
                 title = $"{recipe.name}   (+{Inventory.HealAmount(recipe.result)} HP)",
                 detail = $"{recipe.NeedsText()}      you have {Inventory.Get(recipe.result)}",
                 button = "Craft",
-                enabled = CanCraft(recipe),
+                enabled = CanCraft(recipe) && Inventory.CanAdd(recipe.result, 1),
                 action = () => Craft(recipe),
             });
         }
@@ -79,6 +81,7 @@ public static class Recipes
     public static bool Craft(Recipe r)
     {
         if (!CanCraft(r)) { GameHud.Toast("You're missing some ingredients."); return false; }
+        if (!Inventory.CanAdd(r.result, 1)) { GameHud.Toast("Your inventory is full."); return false; }
         foreach (var n in r.needs) Inventory.TryRemove(n.item, n.count);
         Inventory.Add(r.result, 1);
         GameHud.Toast($"Crafted {r.name.ToLower()}!  (heals {Inventory.HealAmount(r.result)})");
@@ -91,5 +94,5 @@ public class CraftingTable : Interactable
 {
     public override string Prompt => "Craft food, potions & buildings [E]";
     public override void Interact() =>
-        GameHud.OpenMenu("Crafting table", "Craft meals, potions, fences and storage crates from gathered materials", Recipes.BuildMenu);
+        GameHud.OpenMenu("Crafting table", "Craft meals, healing, speed and strength potions, fences and storage crates", Recipes.BuildMenu);
 }
