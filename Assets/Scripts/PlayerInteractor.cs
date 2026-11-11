@@ -58,7 +58,16 @@ public class PlayerInteractor : MonoBehaviour
             if (d < bestDist) { bestDist = d; best = it; }
         }
 
-        CurrentPrompt = best != null ? best.Prompt : null;
-        if (best != null && kb != null && kb.eKey.wasPressedThisFrame) best.Interact();
+        var heldItem = Inventory.Held;
+        bool holdingBuildKit = !heldItem.IsEmpty && (heldItem.item == Item.FenceKit || heldItem.item == Item.StorageCrateKit);
+        CurrentPrompt = best != null ? best.Prompt : holdingBuildKit
+            ? (heldItem.item == Item.FenceKit ? "Place wood fence [E]" : "Place storage crate [E]")
+            : null;
+
+        if (kb != null && kb.eKey.wasPressedThisFrame)
+        {
+            if (best != null) best.Interact();
+            else if (holdingBuildKit) BuildableSystem.PlaceFromKit(heldItem.item);
+        }
     }
 }
