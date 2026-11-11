@@ -101,6 +101,8 @@ public class SimpleMapBuilder : MonoBehaviour
         {
             foreach (var animal in FindObjectsByType<AnimalWander>(FindObjectsSortMode.None))
                 animal.RegisterSaveable();
+            foreach (var animal in FindObjectsByType<AnimalCare>(FindObjectsSortMode.None))
+                animal.RegisterSaveable();
         }
 
         if (!Application.isPlaying) GameSetup.CreatePreviews(generatedRoot.transform); // visible in Scene view
