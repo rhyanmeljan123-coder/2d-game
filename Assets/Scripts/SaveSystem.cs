@@ -14,6 +14,7 @@ using UnityEngine.InputSystem;
     public int hotbar, health;
     public bool hasWateringCanState;
     public int wateringCanCharges;
+    public List<BuildableSystem.PlacedData> buildables = new List<BuildableSystem.PlacedData>();
     public float x, y;
     public List<WorldEntry> world = new List<WorldEntry>();
 }
@@ -49,6 +50,7 @@ public static class SaveSystem
             health = player.Health.current,
             hasWateringCanState = true,
             wateringCanCharges = WateringCanSystem.Charges,
+            buildables = BuildableSystem.Capture(),
             x = player.transform.position.x,
             y = player.transform.position.y,
         };
@@ -157,6 +159,8 @@ public static class SaveSystem
         // Rebuild the world from scratch (fresh plots, chests, monsters), then apply what was saved.
         var builder = UnityEngine.Object.FindFirstObjectByType<SimpleMapBuilder>();
         if (builder != null) { builder.enabled = false; builder.enabled = true; }
+
+        BuildableSystem.Restore(data.buildables);
 
         // Re-register persistent animals because rebuilding the generated map clears WorldState.
         foreach (var animal in UnityEngine.Object.FindObjectsByType<AnimalWander>(FindObjectsSortMode.None))
