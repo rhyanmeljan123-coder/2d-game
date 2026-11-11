@@ -118,6 +118,10 @@ public static class SaveSystem
         var builder = UnityEngine.Object.FindFirstObjectByType<SimpleMapBuilder>();
         if (builder != null) { builder.enabled = false; builder.enabled = true; }
 
+        // Re-register persistent animals because rebuilding the generated map clears WorldState.
+        foreach (var animal in UnityEngine.Object.FindObjectsByType<AnimalWander>(FindObjectsSortMode.None))
+            animal.RegisterSaveable();
+
         if (data.world != null)
         {
             foreach (var entry in data.world)
