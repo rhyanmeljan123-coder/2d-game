@@ -237,7 +237,8 @@ public class GameHud : MonoBehaviour
         float w = 600f, rowH = 56f, h = 96f + rowH * VisibleRows + 34f;
         var win = new Rect(W * 0.5f - w * 0.5f, H * 0.5f - h * 0.5f, w, h);
         TinyWonderUI.DrawPanel(win);
-        GUI.Label(new Rect(win.x, win.y + 8f, win.width, 30f), menuTitle, title);
+        TinyWonderUI.DrawIcon(new Rect(win.x + 16f, win.y + 14f, 18f, 18f), 1, 0);
+        GUI.Label(new Rect(win.x + 40f, win.y + 8f, win.width - 56f, 30f), menuTitle, title);
         GUI.Label(new Rect(win.x, win.y + 38f, win.width, 22f), menuSubtitle, hint2());
         if (menuShowCoins) GUI.Label(new Rect(win.xMax - 140f, win.y + 12f, 120f, 22f), $"Coins: {Inventory.Get(Item.Coin)}", rowName);
 
@@ -278,8 +279,12 @@ public class GameHud : MonoBehaviour
         }
 
         if (entries.Count > VisibleRows)
-            GUI.Label(new Rect(win.x, win.yMax - 52f, win.width, 20f), $"{menuScroll + 1}-{Mathf.Min(entries.Count, menuScroll + VisibleRows)} of {entries.Count}   (W/S to scroll)", hint2());
-        GUI.Label(new Rect(win.x, win.yMax - 30f, win.width, 22f), "W/S or arrows: choose     Enter / Space / click: confirm     Esc / E: close", hint2());
+        {
+            GUI.Label(new Rect(win.x, win.yMax - 52f, win.width - 24f, 20f), $"{menuScroll + 1}-{Mathf.Min(entries.Count, menuScroll + VisibleRows)} of {entries.Count}   (W/S to scroll)", hint2());
+            TinyWonderUI.DrawScrollbar(new Rect(win.xMax - 10f, win.y + 78f, 4f, rowH * VisibleRows - 12f), entries.Count, menuScroll, VisibleRows);
+        }
+        TinyWonderUI.DrawIcon(new Rect(win.x + 18f, win.yMax - 29f, 16f, 16f), 2, 0);
+        GUI.Label(new Rect(win.x + 38f, win.yMax - 30f, win.width - 52f, 22f), "W/S or arrows: choose     Enter / Space / click: confirm     Esc / E: close", hint2());
     }
 
     GUIStyle hintStyle;
