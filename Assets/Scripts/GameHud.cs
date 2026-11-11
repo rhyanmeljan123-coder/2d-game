@@ -183,12 +183,8 @@ public class GameHud : MonoBehaviour
         float w = 220f, h = 18f, x = W * 0.5f - w * 0.5f, y = 8f;
         GUI.color = new Color(0f, 0f, 0f, 0.6f);
         GUI.DrawTexture(new Rect(x - 3f, y - 3f, w + 6f, h + 6f), white);
-        GUI.color = new Color(0.25f, 0.05f, 0.08f, 1f);
-        GUI.DrawTexture(new Rect(x, y, w, h), white);
         float frac = Mathf.Clamp01(hp.current / (float)hp.max);
-        GUI.color = Color.Lerp(new Color(0.85f, 0.15f, 0.2f), new Color(0.3f, 0.8f, 0.35f), frac);
-        GUI.DrawTexture(new Rect(x, y, w * frac, h), white);
-        GUI.color = Color.white;
+        TinyWonderUI.DrawHealthBar(new Rect(x, y, w, h), frac);
         GUI.Label(new Rect(x, y, w, h), $"HP  {hp.current} / {hp.max}", bar);
 
         // coins
@@ -240,11 +236,7 @@ public class GameHud : MonoBehaviour
 
         float w = 600f, rowH = 56f, h = 96f + rowH * VisibleRows + 34f;
         var win = new Rect(W * 0.5f - w * 0.5f, H * 0.5f - h * 0.5f, w, h);
-        GUI.color = new Color(0.30f, 0.18f, 0.12f, 0.98f);
-        GUI.DrawTexture(win, white);
-        GUI.color = new Color(0.17f, 0.10f, 0.08f, 1f);
-        GUI.DrawTexture(new Rect(win.x + 4f, win.y + 4f, win.width - 8f, win.height - 8f), white);
-        GUI.color = Color.white;
+        TinyWonderUI.DrawPanel(win);
         GUI.Label(new Rect(win.x, win.y + 8f, win.width, 30f), menuTitle, title);
         GUI.Label(new Rect(win.x, win.y + 38f, win.width, 22f), menuSubtitle, hint2());
         if (menuShowCoins) GUI.Label(new Rect(win.xMax - 140f, win.y + 12f, 120f, 22f), $"Coins: {Inventory.Get(Item.Coin)}", rowName);
@@ -277,7 +269,7 @@ public class GameHud : MonoBehaviour
             GUI.Label(new Rect(row.x + row.height + 4f, row.y + 26f, 400f, 20f), e.detail, rowInfo);
 
             GUI.enabled = e.enabled;
-            if (GUI.Button(new Rect(row.xMax - 90f, row.y + 8f, 80f, row.height - 16f), e.button))
+            if (TinyWonderUI.DrawButton(new Rect(row.xMax - 90f, row.y + 8f, 80f, row.height - 16f), e.button))
             {
                 menuSelected = i;
                 e.action();
