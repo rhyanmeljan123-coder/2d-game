@@ -24,7 +24,14 @@ public static class FarmWorld
     static Sprite Tulips => Obj(50, 66, 13, 13);
     static Sprite Clover => Obj(48, 81, 16, 15);
     static Sprite Haystack => Obj(64, 65, 32, 31);
-    static Sprite House => Obj(8, 96, 81, 92);
+    static Sprite House => Obj(8, 96, 81, 92); // fallback if the new pack sprites are unavailable
+    static Sprite LoadPackSprite(string resourcePath)
+    {
+        var sprites = Resources.LoadAll<Sprite>(resourcePath);
+        return sprites.Length > 0 ? sprites[0] : null;
+    }
+    static Sprite WoodenHouse => LoadPackSprite("Map/wooden_house");
+    static Sprite WoodenWarehouse => LoadPackSprite("Map/wooden_warehouse");
     static Sprite FenceH => Obj(0, 32, 48, 16);
     static Sprite Post => Obj(20, 32, 8, 16);
     static Sprite DoorClosed => Obj(102, 113, 21, 27);
@@ -88,8 +95,10 @@ public static class FarmWorld
         AddPickup(root, Item.Coin, 35f, 20f, 4);
 
         // ================= MAP 2 (spring farm) =================
-        // Red farmhouse
-        var house = Add(root, "house", House, ox + 6.5f, 12.2f, solid: new Vector2(1.5f, 2.4f), solidOffset: new Vector2(-1.55f, 1.2f));
+        // Player farmhouse from the new Houses and Warehouses pack.
+        var houseSprite = WoodenHouse != null ? WoodenHouse : House;
+        var house = Add(root, "house", houseSprite, ox + 6.5f, 12.2f, solid: new Vector2(1.5f, 2.4f), solidOffset: new Vector2(-1.55f, 1.2f));
+        house.transform.localScale = Vector3.one * 1.45f;
         var rightWall = house.AddComponent<BoxCollider2D>(); // second wall box, leaving a doorway in the middle
         rightWall.size = new Vector2(1.5f, 2.4f);
         rightWall.offset = new Vector2(1.55f, 1.2f);
@@ -101,11 +110,20 @@ public static class FarmWorld
         float[,] birches =
         {
             { 2f, 19.5f }, { 10f, 20.8f }, { 27.5f, 21f }, { 33.5f, 21.5f }, { 38f, 17.5f }, { 37.5f, 7.5f },
-            { 21f, 6f }, { 35.5f, 4.5f }, { 3.5f, 5f }, { 16f, 2.8f }, { 28f, 2.5f }, { 9f, 7f },
+            { 21f, 6f }, { 3.5f, 5f }, { 16f, 2.8f }, { 28f, 2.5f }, { 9f, 7f },
         };
         for (int i = 0; i < birches.GetLength(0); i++)
             AddResourceNode(Add(root, "birch", i % 2 == 0 ? BirchA : BirchB, ox + birches[i, 0], birches[i, 1],
                 solid: new Vector2(0.8f, 0.5f), solidOffset: new Vector2(0f, 0.3f)), ResourceKind.Tree);
+
+        // Wooden warehouse from the new house pack in the southeast clearing.
+        var warehouseSprite = WoodenWarehouse;
+        if (warehouseSprite != null)
+        {
+            var warehouse = Add(root, "wooden warehouse", warehouseSprite, ox + 33.5f, 4.5f,
+                solid: new Vector2(1.8f, 0.7f), solidOffset: new Vector2(0f, 0.35f));
+            warehouse.transform.localScale = Vector3.one * 1.35f;
+        }
 
         // Rocks, stumps, haystack, small plants
         AddResourceNode(Add(root, "rock", Rock, ox + 25.5f, 7.2f, solid: new Vector2(0.9f, 0.55f), solidOffset: new Vector2(0f, 0.3f)), ResourceKind.Rock);
