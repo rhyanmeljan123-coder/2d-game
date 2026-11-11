@@ -65,11 +65,7 @@ public static class ItemUI
         if (rect.xMax > screenW) rect.x = mouse.x - w - 12f;
         if (rect.yMax > screenH) rect.y = screenH - h - 4f;
 
-        GUI.color = new Color(0f, 0f, 0f, 0.92f);
-        GUI.DrawTexture(rect, Texture2D.whiteTexture);
-        GUI.color = color;
-        GUI.DrawTexture(new Rect(rect.x, rect.y, rect.width, 2f), Texture2D.whiteTexture);
-        GUI.color = Color.white;
+        TinyWonderUI.DrawPanel(rect);
         tipTitle.normal.textColor = color;
         GUI.Label(new Rect(rect.x + 8f, rect.y + 4f, w - 16f, 22f), d.name, tipTitle);
         GUI.Label(new Rect(rect.x + 8f, rect.y + 26f, w - 16f, h - 26f), body, tipBody);
