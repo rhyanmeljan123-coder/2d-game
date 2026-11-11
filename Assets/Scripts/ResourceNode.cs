@@ -50,6 +50,8 @@ public class ResourceNode : Interactable, ISaveable
         if (solidCollider != null) solidCollider.enabled = false;
 
         int amount = kind == ResourceKind.Tree ? Random.Range(3, 6) : Random.Range(2, 5);
+        ProgressionSystem.AddXP(ProgressionSystem.Skill.Gathering, 20);
+        if (Random.value < ProgressionSystem.BonusGatherChance) amount++;
         FarmWorld.DropPickup(transform.parent, DropItem, transform.position + Vector3.up * 0.35f, amount);
         GameHud.Toast($"+{amount} {Inventory.Name(DropItem)}");
     }
