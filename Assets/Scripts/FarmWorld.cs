@@ -100,25 +100,25 @@ public static class FarmWorld
         // The pack sprite already contains its own door. Keep the house centered on the
         // road entrance and use small side blockers so the middle doorway stays open.
         var houseBase = new Vector2(ox + 6.5f, 17.5f);
-        var houseDoor = new Vector2(houseBase.x, houseBase.y - 3.4f);
         var house = Add(root, "house", houseSprite, houseBase.x, houseBase.y);
         house.transform.localScale = Vector3.one * 0.45f;
 
-        var leftDoorSide = new GameObject("House left front wall");
-        leftDoorSide.transform.SetParent(root, false);
-        leftDoorSide.transform.position = houseDoor + new Vector2(-0.65f, 0f);
-        var leftBlock = leftDoorSide.AddComponent<BoxCollider2D>();
-        leftBlock.size = new Vector2(0.35f, 0.8f);
+        // The sprite is 263x354 pixels at 100 PPU and 0.45 scale.
+        // Its front door is just above the bottom pivot, not several units below it.
+        var houseDoor = houseBase + new Vector2(0f, 0.24f);
 
-        var rightDoorSide = new GameObject("House right front wall");
-        rightDoorSide.transform.SetParent(root, false);
-        rightDoorSide.transform.position = houseDoor + new Vector2(0.65f, 0f);
-        var rightBlock = rightDoorSide.AddComponent<BoxCollider2D>();
-        rightBlock.size = new Vector2(0.35f, 0.8f);
+        // Solid building body and side walls. These are world-space colliders so their
+        // dimensions match the scaled artwork and they do not inherit sprite scaling.
+        AddHouseCollider(root, "House back wall", houseBase + new Vector2(0f, 0.98f), new Vector2(1.05f, 0.78f));
+        AddHouseCollider(root, "House left side wall", houseBase + new Vector2(-0.53f, 0.52f), new Vector2(0.14f, 0.95f));
+        AddHouseCollider(root, "House right side wall", houseBase + new Vector2(0.53f, 0.52f), new Vector2(0.14f, 0.95f));
+        // Front wall is split into two pieces, leaving a narrow opening for the door.
+        AddHouseCollider(root, "House front left wall", houseBase + new Vector2(-0.37f, 0.20f), new Vector2(0.34f, 0.38f));
+        AddHouseCollider(root, "House front right wall", houseBase + new Vector2(0.37f, 0.20f), new Vector2(0.34f, 0.38f));
 
         Vector2 interiorSpawn = new Vector2(interior.x + interiorWidth * 0.5f, interior.y + 2.6f);
-        // Trigger is centered on the door drawn near the bottom of the house sprite.
-        AddTeleporter(root, houseDoor, new Vector2(0.9f, 0.9f), interiorSpawn);
+        // Small trigger closely follows the visible wooden door instead of covering the whole facade.
+        AddTeleporter(root, houseDoor, new Vector2(0.28f, 0.40f), interiorSpawn);
 
         // Birch trees
         float[,] birches =
@@ -220,8 +220,8 @@ public static class FarmWorld
         // Front door (leads back outside)
         Add(root, "interior door", DoorClosed, ix + w * 0.5f, iy + 0.05f, order: OnWall);
         // Match the interior trigger to the middle of the visible door and spawn outside it.
-        AddTeleporter(root, new Vector2(ix + w * 0.5f, iy + 0.9f), new Vector2(1.0f, 0.8f),
-            new Vector2(MapOffsetForHouse + 6.5f, 12.6f));
+        AddTeleporter(root, new Vector2(ix + w * 0.5f, iy + 0.35f), new Vector2(0.28f, 0.40f),
+            new Vector2(MapOffsetForHouse + 6.5f, 16.95f));
 
         // On the back wall
         Add(root, "window", Window, ix + 4.6f, iy + 8.2f, order: OnWall);
@@ -273,6 +273,15 @@ public static class FarmWorld
             box.offset = solidOffset;
         }
         return go;
+    }
+
+    static void AddHouseCollider(Transform parent, string name, Vector2 position, Vector2 size)
+    {
+        var go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        go.transform.position = position;
+        var box = go.AddComponent<BoxCollider2D>();
+        box.size = size;
     }
 
     public static void AddTeleporter(Transform parent, Vector2 position, Vector2 size, Vector2 destination)
