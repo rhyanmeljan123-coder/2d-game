@@ -13,9 +13,10 @@ public class Bed : Interactable
         GameHud.Fade(() =>
         {
             CropPlot.GrowAll(SleepSeconds);
+            AnimalCare.AdvanceDay();
             var player = FindFirstObjectByType<PlayerController>();
             if (player != null) player.Health.Heal(player.Health.max);
-            GameHud.Toast("You slept well: full health, and your crops grew a little!");
+            GameHud.Toast("You slept well: full health, crops grew, and animals advanced to a new day!");
             SaveSystem.Save();
         });
     }
