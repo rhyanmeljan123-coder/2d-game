@@ -97,11 +97,13 @@ public static class FarmWorld
         // ================= MAP 2 (spring farm) =================
         // Player farmhouse from the new Houses and Warehouses pack.
         var houseSprite = WoodenHouse != null ? WoodenHouse : House;
-        var house = Add(root, "house", houseSprite, ox + 6.5f, 12.2f, solid: new Vector2(1.5f, 2.4f), solidOffset: new Vector2(-1.55f, 1.2f));
-        house.transform.localScale = Vector3.one * 1.45f;
-        var rightWall = house.AddComponent<BoxCollider2D>(); // second wall box, leaving a doorway in the middle
-        rightWall.size = new Vector2(1.5f, 2.4f);
-        rightWall.offset = new Vector2(1.55f, 1.2f);
+        var house = Add(root, "house", houseSprite, ox + 6.5f, 12.2f,
+            solid: new Vector2(4.4f, 1.2f), solidOffset: new Vector2(-2.2f, 0.6f));
+        // Match the farm's 16-pixel tile scale instead of letting the pack artwork dominate the map.
+        house.transform.localScale = Vector3.one * 0.45f;
+        var rightWall = house.AddComponent<BoxCollider2D>(); // second short wall box, leaving the doorway open
+        rightWall.size = new Vector2(4.4f, 1.2f);
+        rightWall.offset = new Vector2(2.2f, 0.6f);
         Add(root, "house door", DoorClosed, ox + 6.5f, 12.25f, order: OrderFor(12.2f) + 1);
         Vector2 interiorSpawn = new Vector2(interior.x + interiorWidth * 0.5f, interior.y + 2.6f);
         AddTeleporter(root, new Vector2(ox + 6.5f, 12.7f), new Vector2(1.2f, 0.7f), interiorSpawn);
@@ -121,8 +123,8 @@ public static class FarmWorld
         if (warehouseSprite != null)
         {
             var warehouse = Add(root, "wooden warehouse", warehouseSprite, ox + 33.5f, 4.5f,
-                solid: new Vector2(1.8f, 0.7f), solidOffset: new Vector2(0f, 0.35f));
-            warehouse.transform.localScale = Vector3.one * 1.35f;
+                solid: new Vector2(4.2f, 1.8f), solidOffset: new Vector2(0f, 0.9f));
+            warehouse.transform.localScale = Vector3.one * 0.42f;
         }
 
         // Rocks, stumps, haystack, small plants
