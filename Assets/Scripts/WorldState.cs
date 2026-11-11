@@ -60,6 +60,19 @@ public static class WorldState
         objects[legacyId] = obj;
     }
 
+    /// <summary>Registers an object with a permanent caller-supplied ID, useful for moving entities.</summary>
+    public static void RegisterFixed(string id, ISaveable obj)
+    {
+        if (obj == null || string.IsNullOrEmpty(id)) return;
+        if (objects.TryGetValue(id, out var existing))
+        {
+            if (ReferenceEquals(existing, obj)) return;
+            Debug.LogError("WorldState: duplicate fixed ID '" + id + "'.");
+            return;
+        }
+        objects.Add(id, obj);
+    }
+
     static string NextLegacyId(string kind)
     {
         counters.TryGetValue(kind, out int n);
