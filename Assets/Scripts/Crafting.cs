@@ -49,6 +49,8 @@ public static class Recipes
                 action = () => Craft(recipe),
             });
         }
+        list.Add(new MenuEntry { icon = Item.Wood, title = "Wood fence", detail = "3 wood   |   placed in front of you", button = "Build", enabled = Inventory.Get(Item.Wood) >= 3, action = () => BuildableSystem.BuildFence() });
+        list.Add(new MenuEntry { icon = Item.Wood, title = "Storage crate", detail = "5 wood + 2 stone   |   placed in front of you", button = "Build", enabled = Inventory.Get(Item.Wood) >= 5 && Inventory.Get(Item.Stone) >= 2, action = () => BuildableSystem.BuildCrate() });
         return list;
     }
 
