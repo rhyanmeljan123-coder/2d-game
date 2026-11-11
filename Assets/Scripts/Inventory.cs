@@ -13,7 +13,8 @@ public enum Item
     Coin, SilverKey, GoldKey,                                                // money and dungeon keys
     RedFlask, BigRedFlask,                                                   // healing flasks
     WoodenSword, IronSword, LeatherTunic, KnightArmor, WateringCan,             // equipment + farm tool
-    Wood, Stone                                                               // gathered materials
+    Wood, Stone,                                                             // gathered materials
+    Egg, Wool, Truffle                                                        // animal products
 }
 
 public struct ItemStack
