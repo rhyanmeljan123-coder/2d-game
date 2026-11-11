@@ -71,6 +71,14 @@ public class AnimalWander : MonoBehaviour, ISaveable
             return;
         }
 
+        // NumberStyles.Float also accepts NaN and Infinity; never apply non-finite coordinates.
+        if (float.IsNaN(x) || float.IsInfinity(x) ||
+            float.IsNaN(y) || float.IsInfinity(y))
+        {
+            Debug.LogWarning("AnimalWander: saved position is not finite for " + saveId);
+            return;
+        }
+
         var position = new Vector2(x, y);
         transform.position = position;
         if (rb != null)
