@@ -12,7 +12,8 @@ public enum Item
     Salad, VegStew, PumpkinSoup, BoneBroth, HealingPotion, HeartyPie,        // crafted food & potions
     Coin, SilverKey, GoldKey,                                                // money and dungeon keys
     RedFlask, BigRedFlask,                                                   // healing flasks
-    WoodenSword, IronSword, LeatherTunic, KnightArmor, WateringCan              // equipment + farm tool
+    WoodenSword, IronSword, LeatherTunic, KnightArmor, WateringCan,             // equipment + farm tool
+    Wood, Stone                                                               // gathered materials
 }
 
 public struct ItemStack

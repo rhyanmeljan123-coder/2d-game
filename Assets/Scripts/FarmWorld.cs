@@ -50,7 +50,7 @@ public static class FarmWorld
         MapOffsetForHouse = mapOffset;
 
         // ================= MAP 1 (first map) =================
-        Add(root, "rock", Rock, 20.5f, 14.2f, solid: new Vector2(0.9f, 0.55f), solidOffset: new Vector2(0f, 0.3f));
+        AddResourceNode(Add(root, "rock", Rock, 20.5f, 14.2f, solid: new Vector2(0.9f, 0.55f), solidOffset: new Vector2(0f, 0.3f)), ResourceKind.Rock);
         Add(root, "haystack", Haystack, 12.5f, 6.2f, solid: new Vector2(1.8f, 0.8f), solidOffset: new Vector2(0f, 0.5f));
         Add(root, "tulips", Tulips, 31.5f, 6.5f);
         Add(root, "flowers", Flowers, 11f, 17f);
@@ -104,12 +104,12 @@ public static class FarmWorld
             { 21f, 6f }, { 35.5f, 4.5f }, { 3.5f, 5f }, { 16f, 2.8f }, { 28f, 2.5f }, { 9f, 7f },
         };
         for (int i = 0; i < birches.GetLength(0); i++)
-            Add(root, "birch", i % 2 == 0 ? BirchA : BirchB, ox + birches[i, 0], birches[i, 1],
-                solid: new Vector2(0.8f, 0.5f), solidOffset: new Vector2(0f, 0.3f));
+            AddResourceNode(Add(root, "birch", i % 2 == 0 ? BirchA : BirchB, ox + birches[i, 0], birches[i, 1],
+                solid: new Vector2(0.8f, 0.5f), solidOffset: new Vector2(0f, 0.3f)), ResourceKind.Tree);
 
         // Rocks, stumps, haystack, small plants
-        Add(root, "rock", Rock, ox + 25.5f, 7.2f, solid: new Vector2(0.9f, 0.55f), solidOffset: new Vector2(0f, 0.3f));
-        Add(root, "rock", Rock, ox + 7f, 3.5f, solid: new Vector2(0.9f, 0.55f), solidOffset: new Vector2(0f, 0.3f));
+        AddResourceNode(Add(root, "rock", Rock, ox + 25.5f, 7.2f, solid: new Vector2(0.9f, 0.55f), solidOffset: new Vector2(0f, 0.3f)), ResourceKind.Rock);
+        AddResourceNode(Add(root, "rock", Rock, ox + 7f, 3.5f, solid: new Vector2(0.9f, 0.55f), solidOffset: new Vector2(0f, 0.3f)), ResourceKind.Rock);
         Add(root, "stump", Stump, ox + 19f, 4.2f, solid: new Vector2(1f, 0.45f), solidOffset: new Vector2(0f, 0.25f));
         Add(root, "stump", Stump, ox + 36.5f, 19.5f, solid: new Vector2(1f, 0.45f), solidOffset: new Vector2(0f, 0.25f));
         Add(root, "haystack", Haystack, ox + 27.5f, 12.4f, solid: new Vector2(1.8f, 0.8f), solidOffset: new Vector2(0f, 0.5f));
@@ -166,8 +166,17 @@ public static class FarmWorld
         DungeonWorld.Build(root, dungeon, new Vector2(24f, 18.2f));
     }
 
-    /// <summary>Spawns an item on the ground (used for monster drops).</summary>
+    /// <summary>Spawns an unsaved loose item (used for monster drops).</summary>
     public static void DropPickup(Item item, Vector2 position, int amount = 1) => AddPickup(null, item, position.x, position.y, amount);
+
+    /// <summary>Spawns a pickup under a generated world parent so it persists across saves.</summary>
+    public static void DropPickup(Transform parent, Item item, Vector2 position, int amount = 1) =>
+        AddPickup(parent, item, position.x, position.y, amount);
+
+    static void AddResourceNode(GameObject go, ResourceKind kind)
+    {
+        if (go != null) go.AddComponent<ResourceNode>().Init(kind);
+    }
 
     // ---------------------------------------------------------------- interior
 

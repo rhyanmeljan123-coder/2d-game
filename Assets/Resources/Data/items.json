@@ -558,6 +558,42 @@
    "iconCell": 16,
    "iconRow": 0,
    "iconCol": 4
+  },
+  {
+   "id": "Wood",
+   "name": "Wood",
+   "category": "Material",
+   "rarity": "Common",
+   "stack": 99,
+   "sell": 4,
+   "buy": 0,
+   "heal": 0,
+   "attack": 0,
+   "defense": 0,
+   "equip": "None",
+   "description": "Wood gathered from trees. Used for crafting and building.",
+   "iconSheet": "",
+   "iconCell": 16,
+   "iconRow": 0,
+   "iconCol": 0
+  },
+  {
+   "id": "Stone",
+   "name": "Stone",
+   "category": "Material",
+   "rarity": "Common",
+   "stack": 99,
+   "sell": 3,
+   "buy": 0,
+   "heal": 0,
+   "attack": 0,
+   "defense": 0,
+   "equip": "None",
+   "description": "Stone gathered from rocks. Used for crafting and building.",
+   "iconSheet": "",
+   "iconCell": 16,
+   "iconRow": 0,
+   "iconCol": 0
   }
  ]
 }
