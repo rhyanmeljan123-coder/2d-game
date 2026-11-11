@@ -120,7 +120,7 @@ public class LootBox : Interactable, ISaveable
     {
         anim = a;
         frames = openFrames;
-        WorldState.Register("box", this);
+        WorldState.Register("box", this, transform.position);
     }
 
     public string CaptureState() => opened ? "open" : null;
@@ -162,7 +162,7 @@ public class FlaskPickup : MonoBehaviour, ISaveable
     public int kind; // 0 speed, 1 strength
     bool collected;
 
-    public void Register() => WorldState.Register("flask", this);
+    public void Register() => WorldState.Register("flask", this, transform.position);
     public string CaptureState() => collected ? "gone" : null;
     public void RestoreState(string saved) { if (saved == "gone") { collected = true; Destroy(gameObject); } }
 
