@@ -63,8 +63,26 @@ public static class SaveSystem
 
             if (File.Exists(FilePath))
             {
-                // Keep the last known save before replacing it with the new file.
-                File.Replace(TempPath, FilePath, BackupPath);
+                // Copy the current save first so a failed replacement never destroys the backup.
+                File.Copy(FilePath, BackupPath, true);
+
+                try
+                {
+                    // Replace the primary file in one operation where the platform supports it.
+                    File.Replace(TempPath, FilePath, null);
+                }
+                catch (PlatformNotSupportedException)
+                {
+                    // Some Unity targets do not implement File.Replace.
+                    File.Delete(FilePath);
+                    File.Move(TempPath, FilePath);
+                }
+                catch (IOException)
+                {
+                    // Keep the backup safe and use a portable replacement fallback.
+                    File.Delete(FilePath);
+                    File.Move(TempPath, FilePath);
+                }
             }
             else
             {
