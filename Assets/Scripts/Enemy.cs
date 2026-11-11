@@ -7,7 +7,10 @@ using UnityEngine;
 /// </summary>
 public class Enemy : MonoBehaviour
 {
-    public enum Kind { Slime, Skeleton }
+    public enum Kind { Slime, Skeleton, Guardian }
+
+    public bool IsBoss => kind == Kind.Guardian;
+    public Health BossHealth => health;
 
     public Kind kind;
 
@@ -41,7 +44,7 @@ public class Enemy : MonoBehaviour
         var rbody = go.AddComponent<Rigidbody2D>();
         rbody.bodyType = RigidbodyType2D.Dynamic;
         var box = go.AddComponent<BoxCollider2D>();
-        box.size = kind == Kind.Slime ? new Vector2(0.8f, 0.45f) : new Vector2(0.6f, 0.35f);
+        box.size = kind == Kind.Slime ? new Vector2(0.8f, 0.45f) : kind == Kind.Guardian ? new Vector2(0.95f, 0.55f) : new Vector2(0.6f, 0.35f);
         box.offset = new Vector2(0f, 0.2f);
         go.AddComponent<SpriteRenderer>();
         go.AddComponent<SimpleAnimator>();
@@ -83,8 +86,17 @@ public class Enemy : MonoBehaviour
             }
             deathFrames = SpriteSheet.Row(sheet, 6, 0, 4);
             deathFps = 8f;
-            health.Configure(6, 0.15f);
-            speed = 2.0f; aggro = 6f; damage = 10; touchRange = 0.9f;
+            if (kind == Kind.Guardian)
+            {
+                health.Configure(55, 0.35f);
+                speed = 1.55f; aggro = 9f; damage = 18; touchRange = 1.05f;
+                sr.color = new Color(0.78f, 0.52f, 1f);
+            }
+            else
+            {
+                health.Configure(6, 0.15f);
+                speed = 2.0f; aggro = 6f; damage = 10; touchRange = 0.9f;
+            }
             sr.sprite = skelIdle[0][0];
         }
 
@@ -182,7 +194,7 @@ public class Enemy : MonoBehaviour
 
     void OnDied()
     {
-        ProgressionSystem.AddXP(ProgressionSystem.Skill.Combat, kind == Kind.Skeleton ? 35 : 25);
+        ProgressionSystem.AddXP(ProgressionSystem.Skill.Combat, kind == Kind.Guardian ? 100 : kind == Kind.Skeleton ? 35 : 25);
         dying = true;
         desiredVelocity = Vector2.zero;
         sr.color = Color.white;
@@ -193,6 +205,13 @@ public class Enemy : MonoBehaviour
         {
             if (Random.value < 0.75f) FarmWorld.DropPickup(Item.SlimeGel, transform.position);
             if (Random.value < 0.35f) FarmWorld.DropPickup(Item.Herb, transform.position + Vector3.right * 0.4f);
+        }
+        else if (kind == Kind.Guardian)
+        {
+            FarmWorld.DropPickup(Item.Bone, transform.position, 5);
+            FarmWorld.DropPickup(Item.BigRedFlask, transform.position + Vector3.right * 0.4f);
+            FarmWorld.DropPickup(Item.Coin, transform.position + Vector3.left * 0.4f, 25);
+            GameHud.Toast("Dungeon Guardian defeated! The treasure chamber is yours!");
         }
         else
         {
