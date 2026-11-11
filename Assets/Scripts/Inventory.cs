@@ -15,7 +15,8 @@ public enum Item
     WoodenSword, IronSword, LeatherTunic, KnightArmor, WateringCan,             // equipment + farm tool
     Wood, Stone,                                                             // gathered materials
     Egg, Wool, Truffle,                                                       // animal products
-    FenceKit, StorageCrateKit                                                 // buildables
+    FenceKit, StorageCrateKit,                                                // buildables
+    SwiftTonic, StrengthTonic                                                   // alchemy potions
 }
 
 public struct ItemStack
@@ -256,10 +257,10 @@ public static class Inventory
 
         var def = Def(s.item);
         if (def.IsEquipment) { EquipFromSlot(i); return; }
-        if (def.IsEdible)
+        if (def.IsEdible || s.item == Item.SwiftTonic || s.item == Item.StrengthTonic)
         {
             var player = UnityEngine.Object.FindFirstObjectByType<PlayerController>();
-            if (player != null) EatItem(s.item, player.Health);
+            if (player != null) UseItem(s.item, player);
             return;
         }
         if (def.IsSeed) { if (i < HotbarSize) SelectHotbar(i); else GameHud.Toast("Move seeds to the hotbar (top row) to plant them."); return; }
@@ -297,6 +298,28 @@ public static class Inventory
     }
 
     // ------------------------------------------------------------ eating
+
+    public static bool UseItem(Item item, PlayerController player)
+    {
+        if (player == null || player.Health == null || player.Health.Dead || Get(item) <= 0) return false;
+        if (Def(item).heal > 0) return EatItem(item, player.Health);
+
+        if (item == Item.SwiftTonic)
+        {
+            if (!TryRemove(item, 1)) return false;
+            player.AddSpeedBoost(30f);
+            GameHud.Toast("Swift tonic used: movement speed increased for 30 seconds.");
+            return true;
+        }
+        if (item == Item.StrengthTonic)
+        {
+            if (!TryRemove(item, 1)) return false;
+            player.AddStrengthBoost(30f);
+            GameHud.Toast("Strength tonic used: sword damage increased for 30 seconds.");
+            return true;
+        }
+        return false;
+    }
 
     public static bool EatItem(Item item, Health hp)
     {
