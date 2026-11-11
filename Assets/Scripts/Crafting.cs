@@ -74,6 +74,7 @@ public static class Recipes
             return false;
         }
         Inventory.Add(result, 1);
+        ProgressionSystem.AddXP(ProgressionSystem.Skill.Crafting, 10);
         GameHud.Toast($"Crafted {Inventory.Name(result)}. Select it in your hotbar and press E to place it.");
         return true;
     }
@@ -84,6 +85,7 @@ public static class Recipes
         if (!Inventory.CanAdd(r.result, 1)) { GameHud.Toast("Your inventory is full."); return false; }
         foreach (var n in r.needs) Inventory.TryRemove(n.item, n.count);
         Inventory.Add(r.result, 1);
+        ProgressionSystem.AddXP(ProgressionSystem.Skill.Crafting, 10);
         GameHud.Toast($"Crafted {r.name.ToLower()}!  (heals {Inventory.HealAmount(r.result)})");
         return true;
     }
