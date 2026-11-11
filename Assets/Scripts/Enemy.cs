@@ -173,7 +173,8 @@ public class Enemy : MonoBehaviour
             sr.flipX = !faceLeft && skelFacing == 1; // the skeleton's side frames face left
         }
 
-        sr.color = Time.time < flashUntil ? new Color(1f, 0.45f, 0.45f) : Color.white;
+        Color normalColor = kind == Kind.Guardian ? new Color(0.78f, 0.52f, 1f) : Color.white;
+        sr.color = Time.time < flashUntil ? new Color(1f, 0.45f, 0.45f) : normalColor;
         sr.sortingOrder = 1000 - Mathf.RoundToInt(transform.position.y * 10f);
     }
 
