@@ -60,11 +60,7 @@ public class InventoryScreen : MonoBehaviour
         win.x = W * 0.5f - win.width * 0.5f;
         win.y = H * 0.5f - win.height * 0.5f;
 
-        GUI.color = new Color(0.30f, 0.18f, 0.12f, 0.98f);
-        GUI.DrawTexture(win, white);
-        GUI.color = new Color(0.17f, 0.10f, 0.08f, 1f);
-        GUI.DrawTexture(new Rect(win.x + 4f, win.y + 4f, win.width - 8f, win.height - 8f), white);
-        GUI.color = Color.white;
+        TinyWonderUI.DrawPanel(win);
 
         var title = new GUIStyle(GUI.skin.label) { fontSize = 18, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleLeft };
         var small = new GUIStyle(GUI.skin.label) { fontSize = 11 };
@@ -114,8 +110,8 @@ public class InventoryScreen : MonoBehaviour
         if (player != null) GUI.Label(new Rect(ex, sy + 36f, panelW, 18f), $"Health:  {player.Health.current} / {player.Health.max}", small);
 
         // --- buttons ---
-        if (GUI.Button(new Rect(win.x + 20f, win.yMax - 52f, 90f, 28f), "Sort")) Inventory.Sort();
-        if (GUI.Button(new Rect(win.x + 120f, win.yMax - 52f, 90f, 28f), "Close")) Close();
+        if (TinyWonderUI.DrawButton(new Rect(win.x + 20f, win.yMax - 52f, 90f, 28f), "Sort")) Inventory.Sort();
+        if (TinyWonderUI.DrawButton(new Rect(win.x + 120f, win.yMax - 52f, 90f, 28f), "Close")) Close();
         GUI.Label(new Rect(win.x + 225f, win.yMax - 54f, win.width - 240f, 34f),
             "Left-click: pick up / place    Right-click: use / equip / place one\nI or Esc: close    F5: save    F9: load", small);
 
