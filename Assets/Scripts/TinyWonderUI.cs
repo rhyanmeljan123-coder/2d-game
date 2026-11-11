@@ -89,6 +89,31 @@ public static class TinyWonderUI
         return GUI.Button(rect, GUIContent.none, GUIStyle.none);
     }
 
+    // The icon sheet is a 3-by-3 grid: close, check, help, plus, minus, and utility marks.
+    public static void DrawIcon(Rect rect, int column, int row, Color? tint = null)
+    {
+        Load();
+        if (iconSheet == null) return;
+        var old = GUI.color;
+        GUI.color = tint ?? Color.white;
+        GUI.DrawTextureWithTexCoords(rect, iconSheet,
+            new Rect(Mathf.Clamp(column, 0, 2) / 3f, Mathf.Clamp(row, 0, 2) / 3f, 1f / 3f, 1f / 3f));
+        GUI.color = old;
+    }
+
+    // A compact warm scrollbar for menus with more rows than can fit on screen.
+    public static void DrawScrollbar(Rect rect, int total, int first, int visible)
+    {
+        if (total <= visible || rect.height <= 0f) return;
+        Fill(rect, new Color(0.30f, 0.19f, 0.15f, 0.9f));
+        float thumbHeight = Mathf.Max(18f, rect.height * visible / total);
+        float travel = Mathf.Max(0f, rect.height - thumbHeight);
+        float normalized = Mathf.Clamp01(first / (float)(total - visible));
+        float thumbY = rect.y + travel * normalized;
+        Fill(new Rect(rect.x, thumbY, rect.width, thumbHeight), new Color(0.82f, 0.57f, 0.37f, 1f));
+        Fill(new Rect(rect.x, thumbY, rect.width, 2f), new Color(1f, 0.84f, 0.63f, 1f));
+    }
+
     public static void DrawHealthBar(Rect rect, float fraction)
     {
         fraction = Mathf.Clamp01(fraction);
