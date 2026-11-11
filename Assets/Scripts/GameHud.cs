@@ -147,6 +147,7 @@ public class GameHud : MonoBehaviour
         var white = Texture2D.whiteTexture;
 
         DrawHealth(W, white);
+        DrawBossBar(W, white);
         DrawHotbar(W, H, white);
 
         // --- controls ---
@@ -186,6 +187,32 @@ public class GameHud : MonoBehaviour
             GUI.DrawTexture(new Rect(0f, 0f, W, H), white);
             GUI.color = Color.white;
         }
+    }
+
+
+
+    void DrawBossBar(float W, Texture2D white)
+    {
+        var enemies = FindObjectsByType<Enemy>(FindObjectsSortMode.None);
+        Enemy boss = null;
+        foreach (var enemy in enemies)
+            if (enemy != null && enemy.IsBoss && enemy.BossHealth != null && !enemy.BossHealth.Dead)
+            { boss = enemy; break; }
+        if (boss == null) return;
+
+        float width = Mathf.Min(360f, W - 40f);
+        float x = W * 0.5f - width * 0.5f;
+        float y = 56f;
+        GUI.Label(new Rect(x, y, width, 20f), "DUNGEON GUARDIAN", title);
+        var barRect = new Rect(x, y + 23f, width, 14f);
+        GUI.color = new Color(0f, 0f, 0f, 0.7f);
+        GUI.DrawTexture(barRect, white);
+        GUI.color = new Color(0.68f, 0.25f, 0.82f, 1f);
+        float fraction = Mathf.Clamp01(boss.BossHealth.current / (float)Mathf.Max(1, boss.BossHealth.max));
+        GUI.DrawTexture(new Rect(barRect.x, barRect.y, barRect.width * fraction, barRect.height), white);
+        GUI.color = Color.white;
+        GUI.Label(new Rect(x, y + 38f, width, 18f),
+            boss.BossHealth.current + " / " + boss.BossHealth.max + " HP", hint2());
     }
 
     void DrawHealth(float W, Texture2D white)
