@@ -72,7 +72,8 @@ public class AnimalCare : Interactable, ISaveable
             if (productReady) return "Collect " + Inventory.Name(productItem) + " [E]";
             if (fedToday && pettedToday) return species + " is happy and cared for today";
             if (fedToday) return "Pet " + species + " [E]";
-            if (Inventory.Held.item == feedItem && !Inventory.Held.IsEmpty)
+            if (pettedToday) return "Select " + Inventory.Name(feedItem).ToLower() + " to feed " + species;
+            if (!Inventory.Held.IsEmpty && Inventory.Held.item == feedItem)
                 return "Feed " + species + " [E]";
             return "Pet " + species + " [E] (feed with " + Inventory.Name(feedItem).ToLower() + ")";
         }
