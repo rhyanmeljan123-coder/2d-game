@@ -94,6 +94,14 @@ public class SimpleMapBuilder : MonoBehaviour
         BuildDungeon();
         FarmWorld.Build(generatedRoot.transform, width, InteriorOrigin, interiorWidth, interiorHeight, DungeonOrigin); // objects, items, furniture, dungeon
         BuildBoundaries();
+
+        // The map build clears WorldState. Re-register animals in case they spawned before this build.
+        if (Application.isPlaying)
+        {
+            foreach (var animal in FindObjectsByType<AnimalWander>(FindObjectsSortMode.None))
+                animal.RegisterSaveable();
+        }
+
         if (!Application.isPlaying) GameSetup.CreatePreviews(generatedRoot.transform); // visible in Scene view
 
         // Everything generated is rebuilt on load, so keep it out of the saved scene file
