@@ -6,7 +6,7 @@ using UnityEngine.InputSystem;
 /// Uses the Cute Fantasy Player.png sheet (6 columns x 10 rows of 32px frames).
 /// Has health: monsters hurt you, food and sleeping heal you, and if you pass out you wake up at the farm.
 /// </summary>
-[RequireComponent(typeof(Rigidbody2D), typeof(SpriteRenderer), typeof(SimpleAnimator))]
+[RequireComponent(typeof(Rigidbody2D), typeof(BoxCollider2D), typeof(SpriteRenderer), typeof(SimpleAnimator))]
 public class PlayerController : MonoBehaviour
 {
     public float walkSpeed = 3.5f;
@@ -42,6 +42,13 @@ public class PlayerController : MonoBehaviour
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        // Every player must have a physical body collider. Scene-placed players were
+        // previously allowed to spawn without one, making all solid world colliders passable.
+        var bodyCollider = GetComponent<BoxCollider2D>();
+        if (bodyCollider == null) bodyCollider = gameObject.AddComponent<BoxCollider2D>();
+        bodyCollider.isTrigger = false;
+        bodyCollider.size = new Vector2(0.6f, 0.35f);
+        bodyCollider.offset = new Vector2(0f, 0.15f);
         sr = GetComponent<SpriteRenderer>();
         anim = GetComponent<SimpleAnimator>();
         Health = GetComponent<Health>();
