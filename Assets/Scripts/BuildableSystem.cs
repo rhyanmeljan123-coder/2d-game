@@ -5,7 +5,13 @@ using UnityEngine;
 /// <summary>Places and persists simple farm structures crafted from gathered materials.</summary>
 public static class BuildableSystem
 {
-    [Serializable] public class PlacedData { public string kind; public float x, y; }
+    [Serializable] public class PlacedData
+    {
+        public string kind;
+        public float x, y;
+        public List<StorageCrate.StoredItemData> contents = new List<StorageCrate.StoredItemData>();
+    }
+
     static readonly List<GameObject> placed = new List<GameObject>();
 
     public static bool BuildFence()
@@ -36,14 +42,18 @@ public static class BuildableSystem
             GameHud.Toast("There isn't enough clear space to build here.");
             return false;
         }
-        Inventory.TryRemove(Item.Wood, wood);
-        if (stone > 0) Inventory.TryRemove(Item.Stone, stone);
-        Create(kind, point);
-        GameHud.Toast(kind == "Fence" ? "Fence placed." : "Storage crate placed.");
+        if (!Inventory.TryRemove(Item.Wood, wood)) return false;
+        if (stone > 0 && !Inventory.TryRemove(Item.Stone, stone))
+        {
+            Inventory.Add(Item.Wood, wood);
+            return false;
+        }
+        Create(kind, point, null);
+        GameHud.Toast(kind == "Fence" ? "Fence placed." : "Storage crate placed. Press E to store items.");
         return true;
     }
 
-    static void Create(string kind, Vector2 point)
+    static void Create(string kind, Vector2 point, List<StorageCrate.StoredItemData> contents)
     {
         var go = new GameObject(kind == "Fence" ? "Built Fence" : "Built Storage Crate");
         go.transform.position = point;
@@ -54,6 +64,8 @@ public static class BuildableSystem
         {
             var frames = TrapSprites.Frames("mini_chest", 16, 16, new Vector2(8f, 2f));
             if (frames != null && frames.Length > 0) sr.sprite = frames[0];
+            var storage = go.AddComponent<StorageCrate>();
+            storage.Init(contents);
         }
         SpriteMaterial.Apply(sr);
         sr.sortingOrder = 1000 - Mathf.RoundToInt(point.y * 10f);
@@ -67,8 +79,18 @@ public static class BuildableSystem
     {
         var data = new List<PlacedData>();
         foreach (var go in placed)
-            if (go != null)
-                data.Add(new PlacedData { kind = go.name.Contains("Fence") ? "Fence" : "Crate", x = go.transform.position.x, y = go.transform.position.y });
+        {
+            if (go == null) continue;
+            var entry = new PlacedData
+            {
+                kind = go.name.Contains("Fence") ? "Fence" : "Crate",
+                x = go.transform.position.x,
+                y = go.transform.position.y
+            };
+            var storage = go.GetComponent<StorageCrate>();
+            if (storage != null) entry.contents = storage.Capture();
+            data.Add(entry);
+        }
         return data;
     }
 
@@ -82,7 +104,7 @@ public static class BuildableSystem
             if (entry == null || (entry.kind != "Fence" && entry.kind != "Crate") ||
                 float.IsNaN(entry.x) || float.IsInfinity(entry.x) || float.IsNaN(entry.y) || float.IsInfinity(entry.y))
                 continue;
-            Create(entry.kind, new Vector2(entry.x, entry.y));
+            Create(entry.kind, new Vector2(entry.x, entry.y), entry.contents);
         }
     }
 }
