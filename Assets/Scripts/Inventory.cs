@@ -12,7 +12,7 @@ public enum Item
     Salad, VegStew, PumpkinSoup, BoneBroth, HealingPotion, HeartyPie,        // crafted food & potions
     Coin, SilverKey, GoldKey,                                                // money and dungeon keys
     RedFlask, BigRedFlask,                                                   // healing flasks
-    WoodenSword, IronSword, LeatherTunic, KnightArmor                        // equipment
+    WoodenSword, IronSword, LeatherTunic, KnightArmor, WateringCan              // equipment + farm tool
 }
 
 public struct ItemStack
@@ -46,6 +46,7 @@ public static class Inventory
         Array.Clear(slots, 0, slots.Length);
         Array.Clear(equipment, 0, equipment.Length);
         for (int i = 0; i < CropCount; i++) slots[i] = new ItemStack(SeedFor(i), 3); // start with 3 of each seed on the hotbar
+        slots[5] = new ItemStack(Item.WateringCan, 1); // starter watering can
         SelectedHotbar = 0;
         lastSeedCrop = 0;
         Changed = null;
@@ -67,6 +68,11 @@ public static class Inventory
 
     public static ItemStack GetSlot(int index) => slots[index];
     public static ItemStack GetEquipped(EquipSlot slot) => equipment[(int)slot];
+
+    public static void EnsureWateringCan()
+    {
+        if (Get(Item.WateringCan) <= 0) Add(Item.WateringCan, 1);
+    }
 
     public static int Get(Item item)
     {
