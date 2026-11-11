@@ -113,9 +113,12 @@ public class CropPlot : Interactable, ISaveable
                         ? $"Plant {Inventory.CropName(c)} [E]"
                         : $"No {Inventory.Name(Inventory.SeedFor(c)).ToLower()} (hold seeds on the hotbar)";
                 case State.Growing:
-                    return watered
-                        ? $"{Inventory.CropName(crop)} growing (watered)"
-                        : $"Water {Inventory.CropName(crop)} [E]";
+                    if (watered) return $"{Inventory.CropName(crop)} growing (watered)";
+                    if (Inventory.Held.IsEmpty || Inventory.Held.item != Item.WateringCan)
+                        return "Equip watering can to water this crop";
+                    return WateringCanSystem.Charges > 0
+                        ? $"Water {Inventory.CropName(crop)} [E]"
+                        : "Watering can empty - refill at pond";
                 default:
                     return $"Harvest {Inventory.CropName(crop)} [E]";
             }
@@ -137,6 +140,16 @@ public class CropPlot : Interactable, ISaveable
         }
         else if (state == State.Growing && !watered)
         {
+            if (Inventory.Held.IsEmpty || Inventory.Held.item != Item.WateringCan)
+            {
+                GameHud.Toast("Select your watering can first.");
+                return;
+            }
+            if (!WateringCanSystem.TryUse())
+            {
+                GameHud.Toast("Your watering can is empty. Refill it at a pond.");
+                return;
+            }
             watered = true;
             AdvanceGrowth(StageSeconds * 0.5f);
             ShowStage();
