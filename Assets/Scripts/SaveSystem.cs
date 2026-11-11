@@ -52,8 +52,17 @@ public static class SaveSystem
         foreach (var kv in WorldState.All)
         {
             if (kv.Value == null) continue;
-            string state = kv.Value.CaptureState();
-            if (state != null) data.world.Add(new WorldEntry { id = kv.Key, state = state });
+
+            try
+            {
+                string state = kv.Value.CaptureState();
+                if (state != null) data.world.Add(new WorldEntry { id = kv.Key, state = state });
+            }
+            catch (Exception e)
+            {
+                // One broken world object should not prevent the rest of the game from saving.
+                Debug.LogWarning("Could not save world object '" + kv.Key + "': " + e.Message);
+            }
         }
 
         try
@@ -145,8 +154,19 @@ public static class SaveSystem
             foreach (var entry in data.world)
             {
                 if (entry == null || string.IsNullOrEmpty(entry.id) || entry.state == null) continue;
+
                 if (WorldState.TryGet(entry.id, out var obj) && obj != null)
-                    obj.RestoreState(entry.state);
+                {
+                    try
+                    {
+                        obj.RestoreState(entry.state);
+                    }
+                    catch (Exception e)
+                    {
+                        // Continue loading other objects if this object's saved state is malformed.
+                        Debug.LogWarning("Could not restore world object '" + entry.id + "': " + e.Message);
+                    }
+                }
             }
         }
 
