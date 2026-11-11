@@ -40,16 +40,45 @@ public class CropPlot : Interactable, ISaveable
 
     public void RestoreState(string saved)
     {
+        // Always begin from a safe empty state. Invalid save data must not leave
+        // a partially restored crop or throw an exception during world loading.
         state = State.Empty;
-        cropRenderer.sprite = null;
+        crop = 0;
+        timer = 0f;
+        stage = 0;
+        if (cropRenderer != null) cropRenderer.sprite = null;
+
         if (string.IsNullOrEmpty(saved)) return;
+
         var parts = saved.Split('|');
-        if (parts.Length < 3) return;
-        state = (State)int.Parse(parts[0]);
-        crop = int.Parse(parts[1]);
-        timer = float.Parse(parts[2], System.Globalization.CultureInfo.InvariantCulture);
-        stage = Mathf.Min(4, Mathf.FloorToInt(timer / StageSeconds));
-        if (state == State.Ripe) stage = 4;
+        if (parts.Length != 3 ||
+            !int.TryParse(parts[0], out int savedState) ||
+            !int.TryParse(parts[1], out int savedCrop) ||
+            !float.TryParse(parts[2], System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out float savedTimer) ||
+            !System.Enum.IsDefined(typeof(State), savedState) ||
+            savedState == (int)State.Empty ||
+            savedCrop < 0 || savedCrop >= PlantRow.Length ||
+            float.IsNaN(savedTimer) || float.IsInfinity(savedTimer) || savedTimer < 0f)
+        {
+            Debug.LogWarning($"Ignored invalid crop save data for {name}.");
+            return;
+        }
+
+        crop = savedCrop;
+        timer = savedTimer;
+        state = (State)savedState;
+
+        if (state == State.Ripe || timer >= StageSeconds * 4f)
+        {
+            state = State.Ripe;
+            stage = 4;
+        }
+        else
+        {
+            stage = Mathf.Clamp(Mathf.FloorToInt(timer / StageSeconds), 0, 3);
+        }
+
         ShowStage();
     }
 
@@ -109,10 +138,17 @@ public class CropPlot : Interactable, ISaveable
         if (stage >= 4) state = State.Ripe;
     }
 
-    void ShowStage() => cropRenderer.sprite = GetSprite(crop, stage);
+    void ShowStage()
+    {
+        if (cropRenderer != null)
+            cropRenderer.sprite = GetSprite(crop, stage);
+    }
 
     public static Sprite GetSprite(int crop, int stage)
     {
+        if (crop < 0 || crop >= PlantRow.Length || stage < 0 || stage > 4)
+            return null;
+
         if (crop == 4) return SpriteSheet.Cut("Items/plants", stage * 16, 64, 16, 32, new Vector2(8, 3)); // peas: tall
         var sheet = SpriteSheet.Slice("Items/plants", 16, new Vector2(8, 3));
         return sheet.Length == 0 ? null : sheet[PlantRow[crop], stage];
