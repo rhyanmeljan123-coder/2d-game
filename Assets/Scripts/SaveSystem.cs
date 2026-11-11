@@ -12,6 +12,8 @@ using UnityEngine.InputSystem;
     public string savedAt;
     public List<Inventory.SlotData> slots, equipment;
     public int hotbar, health;
+    public bool hasWateringCanState;
+    public int wateringCanCharges;
     public float x, y;
     public List<WorldEntry> world = new List<WorldEntry>();
 }
@@ -45,6 +47,8 @@ public static class SaveSystem
             equipment = Inventory.CaptureEquipment(),
             hotbar = Inventory.SelectedHotbar,
             health = player.Health.current,
+            hasWateringCanState = true,
+            wateringCanCharges = WateringCanSystem.Charges,
             x = player.transform.position.x,
             y = player.transform.position.y,
         };
@@ -180,6 +184,8 @@ public static class SaveSystem
         }
 
         Inventory.Restore(data.slots, data.equipment, data.hotbar);
+        Inventory.EnsureWateringCan(); // older saves predate the watering-can item
+        WateringCanSystem.Restore(data.hasWateringCanState ? data.wateringCanCharges : WateringCanSystem.MaxCharges);
 
         var body = player.GetComponent<Rigidbody2D>();
         if (body != null) body.linearVelocity = Vector2.zero;
