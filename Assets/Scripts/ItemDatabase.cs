@@ -37,6 +37,11 @@ public class ItemDef
                 var sheet = SpriteSheet.Slice(iconSheet, iconCell, new Vector2(iconCell * 0.5f, iconCell * 0.5f));
                 if (sheet.Length > 0 && iconRow < sheet.GetLength(0) && iconCol < sheet.GetLength(1)) icon = sheet[iconRow, iconCol];
             }
+            // Reuse the farm pack's own art for gathered materials.
+            if (icon == null && id == Item.Wood)
+                icon = SpriteSheet.Cut("Objects/farm_objects", 105, 64, 25, 12, new Vector2(12.5f, 6f));
+            if (icon == null && id == Item.Stone)
+                icon = SpriteSheet.Cut("Objects/farm_objects", 32, 80, 16, 16, new Vector2(8f, 8f));
             return icon;
         }
     }
@@ -96,7 +101,9 @@ public static class ItemDatabase
             d.iconRow = j.iconRow; d.iconCol = j.iconCol;
         }
         for (int i = 0; i < count; i++)
-            if (string.IsNullOrEmpty(defs[i].iconSheet)) Debug.LogWarning($"ItemDatabase: no entry for item {(Item)i} in items.json.");
+            if (string.IsNullOrEmpty(defs[i].iconSheet) && string.IsNullOrEmpty(defs[i].iconResource) &&
+                defs[i].id != Item.Wood && defs[i].id != Item.Stone)
+                Debug.LogWarning($"ItemDatabase: no entry for item {(Item)i} in items.json.");
     }
 
     public static Color RarityColor(Rarity r)

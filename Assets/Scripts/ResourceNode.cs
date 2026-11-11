@@ -39,7 +39,9 @@ public class ResourceNode : Interactable, ISaveable
         if (hits < RequiredHits)
         {
             if (spriteRenderer != null) spriteRenderer.color = new Color(1f, 0.82f, 0.65f);
-            GameHud.Toast(kind == ResourceKind.Tree ? "Chop... one more hit!" : "Mining... one more hit!");
+            GameHud.Toast(kind == ResourceKind.Tree
+                ? $"Chopping tree: {hits}/{RequiredHits}"
+                : $"Mining rock: {hits}/{RequiredHits}");
             return;
         }
 
